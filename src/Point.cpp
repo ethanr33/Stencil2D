@@ -11,8 +11,11 @@ void Point::rasterize(std::vector<Fragment>& fragments) {
 }
 
 void Point::apply_transformation_matrix(const Matrix& transformation_matrix) {
-    this->p.pos.x = transformation_matrix.get_element(0, 0) * this->p.pos.x + transformation_matrix.get_element(0, 1) * this->p.pos.y + transformation_matrix.get_element(0, 2);
-    this->p.pos.y = transformation_matrix.get_element(1, 0) * this->p.pos.x + transformation_matrix.get_element(1, 1) * this->p.pos.y + transformation_matrix.get_element(1, 2);
+    double new_x = transformation_matrix.get_element(0, 0) * this->p.pos.x + transformation_matrix.get_element(0, 1) * this->p.pos.y + transformation_matrix.get_element(0, 2);
+    double new_y = transformation_matrix.get_element(1, 0) * this->p.pos.x + transformation_matrix.get_element(1, 1) * this->p.pos.y + transformation_matrix.get_element(1, 2);
+
+    this->p.pos.x = new_x;
+    this->p.pos.y = new_y;
 }
 
 std::unique_ptr<Renderable> Point::copy() const {

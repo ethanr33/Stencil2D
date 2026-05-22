@@ -20,9 +20,4 @@ struct Vector {
      */
     Vector(const Matrix&);
 
-    /**
-     * Computes the dot product between a row vector and current vector
-     */
-    void dot(double[]); 
-
 };

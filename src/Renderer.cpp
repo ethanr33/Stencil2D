@@ -22,6 +22,8 @@ void Renderer::display() {
 
 
 void Renderer::clear() {
+    renderables.clear();
+    transformation_manager.reset();
     rasterizer.reset();
     this->state_updated = true;
 }

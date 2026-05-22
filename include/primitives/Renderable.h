@@ -9,8 +9,6 @@
 #include "utils/Color.h"
 #include "rasterizer/Fragment.h"
 
-enum class PRIMITIVE_TYPE { POINT, LINE, TRIANGLE };
-
 class Renderable {
         private:
             // The higher the z index, the higher priority the primitive has
@@ -43,4 +41,6 @@ class Renderable {
             virtual void rasterize(std::vector<Fragment>& fragments) = 0;
 
             virtual std::unique_ptr<Renderable> copy() const = 0;
+
+            virtual ~Renderable() = default;
 };

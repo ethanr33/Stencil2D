@@ -61,7 +61,7 @@ const Matrix Matrix::operator+(const Matrix& rhs) const {
     return Matrix(*this) += rhs;
 }
 
-const Matrix& Matrix::operator*(const Matrix& rhs) const {
+Matrix Matrix::operator*(const Matrix& rhs) const {
     int m = this->rows;
     int n = this->cols;
     int k = rhs.cols;
@@ -70,7 +70,7 @@ const Matrix& Matrix::operator*(const Matrix& rhs) const {
         throw MatrixSizeMismatchException(*this, rhs);
     }
 
-    Matrix* M = new Matrix(m, k);
+    Matrix M = Matrix(m, k);
 
     for (int i = 0; i < m; i++) {
         for (int j = 0; j < k; j++) {
@@ -80,9 +80,9 @@ const Matrix& Matrix::operator*(const Matrix& rhs) const {
                 sum += this->get_element(i, l) * rhs.get_element(l, j);
             }
 
-            M->set_element(i, j, sum);
+            M.set_element(i, j, sum);
         }
     }
 
-    return *M;
+    return M;
 }

@@ -11,11 +11,6 @@
 class Rasterizer {
     private:
         std::vector<Fragment> fragments;
-
-        // Helper functions for standard triangle rasterization algorithm
-        void fill_bottom_flat_triangle(const Vertex& v1, const Vertex& v2, const Vertex& v3, Color, uint32_t z_index);
-        void fill_top_flat_triangle(const Vertex& v1, const Vertex& v2, const Vertex& v3, Color, uint32_t z_index);
-
     public:
         /**
          * @brief Turn a list of renderables into fragments, which which are then rendered onto the frame buffer.

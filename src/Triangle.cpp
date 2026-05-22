@@ -64,14 +64,23 @@ void Triangle::rasterize(std::vector<Fragment>& fragments) {
 }
 
 void Triangle::apply_transformation_matrix(const Matrix& transformation_matrix) {
-    this->v1.pos.x = transformation_matrix.get_element(0, 0) * this->v1.pos.x + transformation_matrix.get_element(0, 1) * this->v1.pos.y + transformation_matrix.get_element(0, 2);
-    this->v1.pos.y = transformation_matrix.get_element(1, 0) * this->v1.pos.x + transformation_matrix.get_element(1, 1) * this->v1.pos.y + transformation_matrix.get_element(1, 2);
+    double new_x = transformation_matrix.get_element(0, 0) * this->v1.pos.x + transformation_matrix.get_element(0, 1) * this->v1.pos.y + transformation_matrix.get_element(0, 2);
+    double new_y = transformation_matrix.get_element(1, 0) * this->v1.pos.x + transformation_matrix.get_element(1, 1) * this->v1.pos.y + transformation_matrix.get_element(1, 2);
 
-    this->v2.pos.x = transformation_matrix.get_element(0, 0) * this->v2.pos.x + transformation_matrix.get_element(0, 1) * this->v2.pos.y + transformation_matrix.get_element(0, 2);
-    this->v2.pos.y = transformation_matrix.get_element(1, 0) * this->v2.pos.x + transformation_matrix.get_element(1, 1) * this->v2.pos.y + transformation_matrix.get_element(1, 2);
+    this->v1.pos.x = new_x;
+    this->v1.pos.y = new_y;
 
-    this->v3.pos.x = transformation_matrix.get_element(0, 0) * this->v3.pos.x + transformation_matrix.get_element(0, 1) * this->v3.pos.y + transformation_matrix.get_element(0, 2);
-    this->v3.pos.y = transformation_matrix.get_element(1, 0) * this->v3.pos.x + transformation_matrix.get_element(1, 1) * this->v3.pos.y + transformation_matrix.get_element(1, 2);
+    new_x = transformation_matrix.get_element(0, 0) * this->v2.pos.x + transformation_matrix.get_element(0, 1) * this->v2.pos.y + transformation_matrix.get_element(0, 2);
+    new_y = transformation_matrix.get_element(1, 0) * this->v2.pos.x + transformation_matrix.get_element(1, 1) * this->v2.pos.y + transformation_matrix.get_element(1, 2);
+
+    this->v2.pos.x = new_x;
+    this->v2.pos.y = new_y;
+
+    new_x = transformation_matrix.get_element(0, 0) * this->v3.pos.x + transformation_matrix.get_element(0, 1) * this->v3.pos.y + transformation_matrix.get_element(0, 2);
+    new_y = transformation_matrix.get_element(1, 0) * this->v3.pos.x + transformation_matrix.get_element(1, 1) * this->v3.pos.y + transformation_matrix.get_element(1, 2);
+
+    this->v3.pos.x = new_x;
+    this->v3.pos.y = new_y;
 }
 
 std::unique_ptr<Renderable> Triangle::copy() const {

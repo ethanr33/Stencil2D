@@ -28,12 +28,12 @@ class Renderer {
         Renderer(int width, int height) : display_width(width), display_height(height), front_buffer(width, height), back_buffer(width, height) {}
 
         /**
-         * @brief Clears back frame buffer, resets command stream
+         * @brief Clears back frame buffer, clears all renderables
          */
         void clear();
 
         /**
-         * @brief Adds a new renderable object to command stream
+         * @brief Adds a new renderable object
          */
         void add_renderable(const Renderable&);
 

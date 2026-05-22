@@ -82,11 +82,17 @@ void Line::rasterize(std::vector<Fragment>& fragments) {
 }
 
 void Line::apply_transformation_matrix(const Matrix& transformation_matrix) {
-    this->start.pos.x = transformation_matrix.get_element(0, 0) * this->start.pos.x + transformation_matrix.get_element(0, 1) * this->start.pos.y + transformation_matrix.get_element(0, 2);
-    this->start.pos.y = transformation_matrix.get_element(1, 0) * this->start.pos.x + transformation_matrix.get_element(1, 1) * this->start.pos.y + transformation_matrix.get_element(1, 2);
+    double new_x = transformation_matrix.get_element(0, 0) * this->start.pos.x + transformation_matrix.get_element(0, 1) * this->start.pos.y + transformation_matrix.get_element(0, 2);
+    double new_y = transformation_matrix.get_element(1, 0) * this->start.pos.x + transformation_matrix.get_element(1, 1) * this->start.pos.y + transformation_matrix.get_element(1, 2);
 
-    this->end.pos.x = transformation_matrix.get_element(0, 0) * this->end.pos.x + transformation_matrix.get_element(0, 1) * this->end.pos.y + transformation_matrix.get_element(0, 2);
-    this->end.pos.y = transformation_matrix.get_element(1, 0) * this->end.pos.x + transformation_matrix.get_element(1, 1) * this->end.pos.y + transformation_matrix.get_element(1, 2);
+    this->start.pos.x = new_x;
+    this->start.pos.y = new_y;
+
+    new_x = transformation_matrix.get_element(0, 0) * this->end.pos.x + transformation_matrix.get_element(0, 1) * this->end.pos.y + transformation_matrix.get_element(0, 2);
+    new_y = transformation_matrix.get_element(1, 0) * this->end.pos.x + transformation_matrix.get_element(1, 1) * this->end.pos.y + transformation_matrix.get_element(1, 2);
+
+    this->end.pos.x = new_x;
+    this->end.pos.y = new_y;
 }
 
 std::unique_ptr<Renderable> Line::copy() const {

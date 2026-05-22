@@ -50,9 +50,6 @@ class Matrix {
 
         const Matrix operator+(const Matrix&) const;
 
-        const Matrix& operator*(const Matrix&) const;
-
-        // Matrix * column vector = column vector
-        // const Vector& operator*(const Vector&);
+        Matrix operator*(const Matrix&) const;
 
 };
