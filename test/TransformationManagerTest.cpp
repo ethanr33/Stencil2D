@@ -1,153 +1,175 @@
 
-// #include "doctest.h"
-// #include "transformations/TransformationManager.h"
+#include "doctest.h"
+#include "transformations/TransformationManager.h"
+#include "primitives/Point.h"
 
-// TEST_CASE("No viewport transformations") {
-//     TransformationManager t;
+TEST_CASE("No viewport transformations") {
+    TransformationManager t;
+    std::vector<std::unique_ptr<Renderable>> renderables;
 
-//     SUBCASE("Points") {
+    SUBCASE("Points") {
 
-//         SUBCASE("Single point") {
-//             Primitive p = Primitive(PRIMITIVE_TYPE::POINT, Vertex(2, 9));
+        SUBCASE("Single point") {
+            Point p = Point(Vertex(2, 9));
 
-//             commands.push_back(AddPrimitiveCommand(p));
+            renderables.push_back(p.copy());
 
-//             t.apply_transformations(commands);
+            t.apply_transformations(renderables);
 
-//             REQUIRE(commands.size() == 1);
+            REQUIRE(renderables.size() == 1);
 
-//             CHECK(t.get_transformed_commands().at(0).primitive.vertices[0].pos.x == 2);
-//             CHECK(t.get_transformed_commands().at(0).primitive.vertices[0].pos.y == 9);
-//         }
+            const Point* transformed = dynamic_cast<const Point*>(t.get_transformed_renderables().at(0).get());
+            REQUIRE(transformed != nullptr);
+            CHECK(transformed->get_pos().x == 2);
+            CHECK(transformed->get_pos().y == 9);
+        }
 
-//         SUBCASE("Multiple points") {
-//             Primitive p1 = Primitive(PRIMITIVE_TYPE::POINT, Vertex(2, 9));
-//             Primitive p2 = Primitive(PRIMITIVE_TYPE::POINT, Vertex(20, 90));
-//             Primitive p3 = Primitive(PRIMITIVE_TYPE::POINT, Vertex(200, 900));
-
-
-//             commands.push_back(AddPrimitiveCommand(p1));
-//             commands.push_back(AddPrimitiveCommand(p2));
-//             commands.push_back(AddPrimitiveCommand(p3));
+        SUBCASE("Multiple points") {
+            Point p1 = Point(Vertex(2, 9));
+            Point p2 = Point(Vertex(20, 90));
+            Point p3 = Point(Vertex(200, 900));
 
 
-//             t.apply_transformations(commands);
+            renderables.push_back(p1.copy());
+            renderables.push_back(p2.copy());
+            renderables.push_back(p3.copy());
 
-//             REQUIRE(commands.size() == 3);
 
-//             CHECK(t.get_transformed_commands().at(0).primitive.vertices[0].pos.x == 2);
-//             CHECK(t.get_transformed_commands().at(0).primitive.vertices[0].pos.y == 9);
-//             CHECK(t.get_transformed_commands().at(1).primitive.vertices[0].pos.x == 20);
-//             CHECK(t.get_transformed_commands().at(1).primitive.vertices[0].pos.y == 90);
-//             CHECK(t.get_transformed_commands().at(2).primitive.vertices[0].pos.x == 200);
-//             CHECK(t.get_transformed_commands().at(2).primitive.vertices[0].pos.y == 900);
-//         }
+            t.apply_transformations(renderables);
 
-//     }
+            REQUIRE(renderables.size() == 3);
 
-// }
+            const Point* transformed0 = dynamic_cast<const Point*>(t.get_transformed_renderables().at(0).get());
+            const Point* transformed1 = dynamic_cast<const Point*>(t.get_transformed_renderables().at(1).get());
+            const Point* transformed2 = dynamic_cast<const Point*>(t.get_transformed_renderables().at(2).get());
+            REQUIRE(transformed0 != nullptr);
+            REQUIRE(transformed1 != nullptr);
+            REQUIRE(transformed2 != nullptr);
+            CHECK(transformed0->get_pos().x == 2);
+            CHECK(transformed0->get_pos().y == 9);
+            CHECK(transformed1->get_pos().x == 20);
+            CHECK(transformed1->get_pos().y == 90);
+            CHECK(transformed2->get_pos().x == 200);
+            CHECK(transformed2->get_pos().y == 900);
+        }
 
-// TEST_CASE("Simple translations") {
+    }
 
-//     TransformationManager t;
-//     std::vector<AddPrimitiveCommand> commands;
+}
 
-//     SUBCASE("Points") {
+TEST_CASE("Simple translations") {
 
-//         SUBCASE("Single point, single translation") {
-//             Primitive p = Primitive(PRIMITIVE_TYPE::POINT, Vertex(2, 9));
+    TransformationManager t;
+    std::vector<std::unique_ptr<Renderable>> renderables;
 
-//             commands.push_back(AddPrimitiveCommand(p));
+    SUBCASE("Points") {
 
-//             t.add_translation(19, 23);
-//             t.apply_transformations(commands);
+        SUBCASE("Single point, single translation") {
+            Point p = Point(Vertex(2, 9));
 
-//             REQUIRE(commands.size() == 1);
+            renderables.push_back(p.copy());
 
-//             CHECK(t.get_transformed_commands().at(0).primitive.vertices[0].pos.x == 21);
-//             CHECK(t.get_transformed_commands().at(0).primitive.vertices[0].pos.y == 32);
-//         }
+            t.add_translation(19, 23);
+            t.apply_transformations(renderables);
 
-//         SUBCASE("Single point, single floating point translation") {
-//             Primitive p = Primitive(PRIMITIVE_TYPE::POINT, Vertex(2, 9));
+            REQUIRE(renderables.size() == 1);
 
-//             commands.push_back(AddPrimitiveCommand(p));
+            const Point* transformed = dynamic_cast<const Point*>(t.get_transformed_renderables().at(0).get());
+            REQUIRE(transformed != nullptr);
+            CHECK(transformed->get_pos().x == 21);
+            CHECK(transformed->get_pos().y == 32);
+        }
 
-//             t.add_translation(0.2, 0.05);
-//             t.apply_transformations(commands);
+        SUBCASE("Single point, single floating point translation") {
+            Point p = Point(Vertex(2, 9));
 
-//             REQUIRE(commands.size() == 1);
+            renderables.push_back(p.copy());
 
-//             CHECK(t.get_transformed_commands().at(0).primitive.vertices[0].pos.x == 2.2);
-//             CHECK(t.get_transformed_commands().at(0).primitive.vertices[0].pos.y == 9.05);
-//         }
+            t.add_translation(0.2, 0.05);
+            t.apply_transformations(renderables);
 
-//         SUBCASE("Single point, multiple translations") {
-//             Primitive p = Primitive(PRIMITIVE_TYPE::POINT, Vertex(2, 9));
+            REQUIRE(renderables.size() == 1);
 
-//             commands.push_back(AddPrimitiveCommand(p));
+            const Point* transformed = dynamic_cast<const Point*>(t.get_transformed_renderables().at(0).get());
+            REQUIRE(transformed != nullptr);
+            CHECK(transformed->get_pos().x == 2.2);
+            CHECK(transformed->get_pos().y == 9.05);
+        }
 
-//             t.add_translation(19, 23);
-//             t.add_translation(20, 22);
-//             t.add_translation(-2, -1);
+        SUBCASE("Single point, multiple translations") {
+            Point p = Point(Vertex(2, 9));
 
-//             t.apply_transformations(commands);
+            renderables.push_back(p.copy());
 
-//             REQUIRE(commands.size() == 1);
+            t.add_translation(19, 23);
+            t.add_translation(20, 22);
+            t.add_translation(-2, -1);
 
-//             CHECK(t.get_transformed_commands().at(0).primitive.vertices[0].pos.x == 39);
-//             CHECK(t.get_transformed_commands().at(0).primitive.vertices[0].pos.y == 53);
-//         }
+            t.apply_transformations(renderables);
 
-//     }
+            REQUIRE(renderables.size() == 1);
 
-//     SUBCASE("Edge cases") {
+            const Point* transformed = dynamic_cast<const Point*>(t.get_transformed_renderables().at(0).get());
+            REQUIRE(transformed != nullptr);
+            CHECK(transformed->get_pos().x == 39);
+            CHECK(transformed->get_pos().y == 53);
+        }
 
-//         SUBCASE("Very large positive translation") {
-//             Primitive p = Primitive(PRIMITIVE_TYPE::POINT, Vertex(2, 9));
+    }
 
-//             commands.push_back(AddPrimitiveCommand(p));
+    SUBCASE("Edge cases") {
 
-//             t.add_translation(1000000, 1000000);
+        SUBCASE("Very large positive translation") {
+            Point p = Point(Vertex(2, 9));
 
-//             t.apply_transformations(commands);
+            renderables.push_back(p.copy());
 
-//             REQUIRE(commands.size() == 1);
+            t.add_translation(1000000, 1000000);
 
-//             CHECK(t.get_transformed_commands().at(0).primitive.vertices[0].pos.x == 1000002);
-//             CHECK(t.get_transformed_commands().at(0).primitive.vertices[0].pos.y == 1000009);
-//         }
+            t.apply_transformations(renderables);
 
-//         SUBCASE("Very large negative translation") {
-//             Primitive p = Primitive(PRIMITIVE_TYPE::POINT, Vertex(2, 9));
+            REQUIRE(renderables.size() == 1);
 
-//             commands.push_back(AddPrimitiveCommand(p));
+            const Point* transformed = dynamic_cast<const Point*>(t.get_transformed_renderables().at(0).get());
+            REQUIRE(transformed != nullptr);
+            CHECK(transformed->get_pos().x == 1000002);
+            CHECK(transformed->get_pos().y == 1000009);
+        }
 
-//             t.add_translation(-1000000, -1000000);
+        SUBCASE("Very large negative translation") {
+            Point p = Point(Vertex(2, 9));
 
-//             t.apply_transformations(commands);
+            renderables.push_back(p.copy());
 
-//             REQUIRE(commands.size() == 1);
+            t.add_translation(-1000000, -1000000);
 
-//             CHECK(t.get_transformed_commands().at(0).primitive.vertices[0].pos.x == -999998);
-//             CHECK(t.get_transformed_commands().at(0).primitive.vertices[0].pos.y == -999991);
-//         }
+            t.apply_transformations(renderables);
 
-//         SUBCASE("Zero translation") {
-//             Primitive p = Primitive(PRIMITIVE_TYPE::POINT, Vertex(2, 9));
+            REQUIRE(renderables.size() == 1);
 
-//             commands.push_back(AddPrimitiveCommand(p));
+            const Point* transformed = dynamic_cast<const Point*>(t.get_transformed_renderables().at(0).get());
+            REQUIRE(transformed != nullptr);
+            CHECK(transformed->get_pos().x == -999998);
+            CHECK(transformed->get_pos().y == -999991);
+        }
 
-//             t.add_translation(0, 0);
+        SUBCASE("Zero translation") {
+            Point p = Point(Vertex(2, 9));
 
-//             t.apply_transformations(commands);
+            renderables.push_back(p.copy());
 
-//             REQUIRE(commands.size() == 1);
+            t.add_translation(0, 0);
 
-//             CHECK(t.get_transformed_commands().at(0).primitive.vertices[0].pos.x == 2);
-//             CHECK(t.get_transformed_commands().at(0).primitive.vertices[0].pos.y == 9);
-//         }
+            t.apply_transformations(renderables);
 
-//     }
+            REQUIRE(renderables.size() == 1);
 
-// }
+            const Point* transformed = dynamic_cast<const Point*>(t.get_transformed_renderables().at(0).get());
+            REQUIRE(transformed != nullptr);
+            CHECK(transformed->get_pos().x == 2);
+            CHECK(transformed->get_pos().y == 9);
+        }
+
+    }
+
+}
