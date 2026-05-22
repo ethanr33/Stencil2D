@@ -1,8 +1,9 @@
 
 #pragma once
 
-#include "primitives/Primitive.h"
+#include <algorithm>
 
+#include "primitives/Primitive.h"
 
 class Triangle : public Primitive {
     private:
@@ -10,7 +11,25 @@ class Triangle : public Primitive {
         Vertex v1;
         Vertex v2;
         Vertex v3;
+
+        // Helper functions for standard triangle rasterization algorithm
+        void fill_bottom_flat_triangle(const Vertex& v1, const Vertex& v2, const Vertex& v3, std::vector<Fragment>& fragments);
+        void fill_top_flat_triangle(const Vertex& v1, const Vertex& v2, const Vertex& v3, std::vector<Fragment>& fragments);
     public:
+
+        Triangle(const Vertex& a, const Vertex& b, const Vertex& c) {
+            std::vector<Vertex> vertices = {a, b, c};
+
+            // Make sure to organize vertices in ascending y position
+
+            std::sort(vertices.begin(), vertices.end(), [](Vertex a1, Vertex a2) {
+                return a1.pos.y < a2.pos.y;
+            });
+
+            v1 = vertices.at(0);
+            v2 = vertices.at(1);
+            v3 = vertices.at(2);
+        }
 
         Vector get_v1_pos() const {
             return v1.pos;
@@ -29,4 +48,6 @@ class Triangle : public Primitive {
         void rasterize(std::vector<Fragment>& fragments) override;
 
         void apply_transformation_matrix(const Matrix& transformation_matrix) override;
+
+        std::unique_ptr<Renderable> copy() const override;
 };

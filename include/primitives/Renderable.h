@@ -40,4 +40,6 @@ class Renderable {
              * @param fragments - Existing list of fragments to add to
              */
             virtual void rasterize(std::vector<Fragment>& fragments) = 0;
+
+            virtual std::unique_ptr<Renderable> copy() const = 0;
 };

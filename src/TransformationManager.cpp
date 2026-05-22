@@ -11,7 +11,11 @@ void TransformationManager::add_translation(double dx, double dy) {
 }
 
 void TransformationManager::apply_transformations(const std::vector<std::unique_ptr<Renderable>>& renderables) {
-    this->transformed_renderables = renderables;
+    this->transformed_renderables.reserve(renderables.size());
+
+    for (const std::unique_ptr<Renderable>& r : renderables) {
+        this->transformed_renderables.push_back(r->copy());
+    }
 
     for (std::unique_ptr<Renderable>& r : this->transformed_renderables) {
         r.get()->apply_transformation_matrix(this->transformation_matrix);

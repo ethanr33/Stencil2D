@@ -27,7 +27,7 @@ void Renderer::clear() {
 }
 
 void Renderer::add_renderable(const Renderable& r) {
-    renderables.push_back(std::make_unique<Renderable>(r));
+    renderables.push_back(r.copy());
     this->state_updated = true;
 }
 

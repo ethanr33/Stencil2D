@@ -7,6 +7,7 @@ class Point : public Primitive {
     private:
         Vertex p;
     public:
+        Point(Vertex v) : p(v) {}
 
         Vector get_pos() const {
             return this->p.pos;
@@ -17,4 +18,6 @@ class Point : public Primitive {
         void rasterize(std::vector<Fragment>& fragments) override;
 
         void apply_transformation_matrix(const Matrix& transformation_matrix) override;
+
+        std::unique_ptr<Renderable> copy() const override;
 };

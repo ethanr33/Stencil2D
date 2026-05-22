@@ -22,7 +22,7 @@ class TransformationManager {
 
         void apply_transformations(const std::vector<std::unique_ptr<Renderable>>&);
 
-        const std::vector<std::unique_ptr<Renderable>> get_transformed_renderables() const noexcept {
+        const std::vector<std::unique_ptr<Renderable>>& get_transformed_renderables() const noexcept {
             return transformed_renderables;
         }
 
