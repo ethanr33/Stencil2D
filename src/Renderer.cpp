@@ -11,9 +11,9 @@ void Renderer::display() {
         rasterizer.reset();
         transformation_manager.clear_transformed_commands();
 
-        transformation_manager.apply_transformations(command_stream.get_command_stream());
+        transformation_manager.apply_transformations(this->renderables);
 
-        rasterizer.make_fragments(this->transformation_manager.get_transformed_commands());
+        rasterizer.make_fragments(this->transformation_manager.get_transformed_renderables());
         rasterizer.render_fragments(this->back_buffer);
 
         this->state_updated = false;
@@ -23,12 +23,11 @@ void Renderer::display() {
 
 void Renderer::clear() {
     rasterizer.reset();
-    command_stream.reset();
     this->state_updated = true;
 }
 
-void Renderer::add_primitive(const Primitive& p) {
-    command_stream.add_primitive(p);
+void Renderer::add_renderable(const Renderable& r) {
+    renderables.push_back(std::make_unique<Renderable>(r));
     this->state_updated = true;
 }
 

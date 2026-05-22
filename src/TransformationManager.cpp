@@ -10,28 +10,15 @@ void TransformationManager::add_translation(double dx, double dy) {
         transformation_matrix = translation_matrix * transformation_matrix;
 }
 
-void TransformationManager::apply_transformations(const std::vector<Command>& commands) {
-    for (const Command& c : commands) {
-        PRIMITIVE_TYPE type = c.primitive.type;
+void TransformationManager::apply_transformations(const std::vector<std::unique_ptr<Renderable>>& renderables) {
+    this->transformed_renderables = renderables;
 
-        Command new_command{c};
-
-        new_command.primitive.vertices[0].pos.x = transformation_matrix.get_element(0, 0) * c.primitive.vertices[0].pos.x + transformation_matrix.get_element(0, 1) * c.primitive.vertices[0].pos.y + transformation_matrix.get_element(0, 2);
-        new_command.primitive.vertices[0].pos.y = transformation_matrix.get_element(1, 0) * c.primitive.vertices[0].pos.x + transformation_matrix.get_element(1, 1) * c.primitive.vertices[0].pos.y + transformation_matrix.get_element(1, 2);  
-    
-        new_command.primitive.vertices[1].pos.x = transformation_matrix.get_element(0, 0) * c.primitive.vertices[1].pos.x + transformation_matrix.get_element(0, 1) * c.primitive.vertices[1].pos.y + transformation_matrix.get_element(0, 2);
-        new_command.primitive.vertices[1].pos.y = transformation_matrix.get_element(1, 0) * c.primitive.vertices[1].pos.x + transformation_matrix.get_element(1, 1) * c.primitive.vertices[1].pos.y + transformation_matrix.get_element(1, 2);  
-
-        new_command.primitive.vertices[2].pos.x = transformation_matrix.get_element(0, 0) * c.primitive.vertices[2].pos.x + transformation_matrix.get_element(0, 1) * c.primitive.vertices[2].pos.y + transformation_matrix.get_element(0, 2);
-        new_command.primitive.vertices[2].pos.y = transformation_matrix.get_element(1, 0) * c.primitive.vertices[2].pos.x + transformation_matrix.get_element(1, 1) * c.primitive.vertices[2].pos.y + transformation_matrix.get_element(1, 2); 
-
-        this->transformed_commands.push_back(new_command);
+    for (std::unique_ptr<Renderable>& r : this->transformed_renderables) {
+        r.get()->apply_transformation_matrix(this->transformation_matrix);
     }
-
-    
 }
 
 void TransformationManager::reset() {
-    this->transformed_commands.clear();
+    this->transformed_renderables.clear();
     this->transformation_matrix.set_identity();
 }

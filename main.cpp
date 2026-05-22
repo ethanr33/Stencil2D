@@ -12,8 +12,6 @@ int main() {
 
     Engine e{width, height};
 
-    
-
 
     while (e.is_active()) {
         e.tick();

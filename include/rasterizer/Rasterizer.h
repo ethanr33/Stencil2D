@@ -4,8 +4,9 @@
 #include <vector>
 
 #include "FrameBuffer.h"
-#include "command_processing/Command.h"
 #include "rasterizer/Fragment.h"
+#include "primitives/Renderable.h"
+#include "primitives/Primitive.h"
 
 class Rasterizer {
     private:
@@ -19,7 +20,7 @@ class Rasterizer {
          * @brief Adds fragments needed to rasterize a triangle
          * Uses standard triangle rasterization algorithm: https://www.sunshine2k.de/coding/java/TriangleRasterization/TriangleRasterization.html#algo1
          */
-        void make_triangle_fragments(const Primitive&);
+        void make_triangle_fragments(const Triangle&);
 
         // Bresenham's line drawing algorithm helper functions
         void plot_line_low(int, int, int, int, Color, uint32_t z_index);
@@ -29,12 +30,12 @@ class Rasterizer {
          * @brief Adds fragments needed to render a line
          * Uses Bresenham's line drawing algorithm: https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm#All_cases
          */
-        void make_line_fragments(const Primitive&);
+        void make_line_fragments(const Line&);
     public:
         /**
-         * @brief Turn a list of primitives into fragments, which which are then rendered onto the frame buffer.
+         * @brief Turn a list of renderables into fragments, which which are then rendered onto the frame buffer.
          */
-        void make_fragments(const std::vector<Command>&);
+        void make_fragments(const std::vector<std::unique_ptr<Renderable>>&);
 
         /**
          * @brief Renders current fragments onto a frame buffer

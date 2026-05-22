@@ -2,7 +2,6 @@
 #pragma once 
 
 #include "primitives/Vertex.h"
-#include "command_processing/CommandStream.h"
 #include "transformations/TransformationManager.h"
 #include "rasterizer/Rasterizer.h"
 #include "FrameBuffer.h"
@@ -13,7 +12,9 @@ class Renderer {
         int display_width;
         int display_height;
 
-        CommandStream command_stream;
+        // List of object which are being drawn
+        std::vector<std::unique_ptr<Renderable>> renderables;
+
         TransformationManager transformation_manager;
         Rasterizer rasterizer;
         
@@ -32,9 +33,9 @@ class Renderer {
         void clear();
 
         /**
-         * @brief Adds a new primitive to command stream
+         * @brief Adds a new renderable object to command stream
          */
-        void add_primitive(const Primitive&);
+        void add_renderable(const Renderable&);
 
         /**
          * @brief Translates viewport top left corner from (x, y) to (x + dx, y + dy)
