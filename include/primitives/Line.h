@@ -23,8 +23,6 @@ class Line : public Primitive {
             return this->end.pos;
         }
 
-        void apply_translation(double dx, double dy) override;
-
         void rasterize(std::vector<Fragment>& fragments) override;
 
         void apply_transformation_matrix(const Matrix& transformation_matrix) override;

@@ -43,8 +43,6 @@ class Triangle : public Primitive {
             return v3.pos;
         }
 
-        void apply_translation(double dx, double dy) override;
-
         void rasterize(std::vector<Fragment>& fragments) override;
 
         void apply_transformation_matrix(const Matrix& transformation_matrix) override;

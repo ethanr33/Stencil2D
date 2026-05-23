@@ -2,6 +2,7 @@
 #include <stdexcept>
 
 #include "utils/Matrix.h"
+#include "image/Image.h"
 
 class InvalidMatrixConstructionException : public std::logic_error {
     public:
@@ -21,5 +22,19 @@ class MatrixToVectorConversionException : public std::logic_error {
     public:
         MatrixToVectorConversionException(const Matrix& m) : std::logic_error(
             "Cannot convert " + std::to_string(m.get_rows()) + "x" + std::to_string(m.get_cols()) + " matrix to column vector"
+        ) {}
+};
+
+class FileNotFoundException : public std::runtime_error {
+    public:
+        FileNotFoundException(const std::string& file_path) : std::runtime_error(
+            "Cannot find file at " + file_path
+        ) {}
+}
+
+class UnknownImageFormatException : public std::runtime_error {
+    public:
+        UnknownImageFormatException(const std::string& file_path) : std::runtime_error(
+            "Unknown or unsupported file format for image file " + file_path
         ) {}
 };

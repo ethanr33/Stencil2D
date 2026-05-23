@@ -1,11 +1,6 @@
 
 #include "primitives/Point.h"
 
-void Point::apply_translation(double dx, double dy) {
-    this->p.pos.x += dx;
-    this->p.pos.y += dy;
-};
-
 void Point::rasterize(std::vector<Fragment>& fragments) {
     fragments.push_back(Fragment(p.pos.x, p.pos.y, this->get_color(), this->get_z_index()));
 }

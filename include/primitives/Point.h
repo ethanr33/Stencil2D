@@ -13,8 +13,6 @@ class Point : public Primitive {
             return this->p.pos;
         }
 
-        void apply_translation(double dx, double dy) override;
-
         void rasterize(std::vector<Fragment>& fragments) override;
 
         void apply_transformation_matrix(const Matrix& transformation_matrix) override;

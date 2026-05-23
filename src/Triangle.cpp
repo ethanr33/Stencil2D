@@ -40,17 +40,6 @@ void Triangle::fill_top_flat_triangle(const Vertex& v1, const Vertex& v2, const 
     }
 }
 
-void Triangle::apply_translation(double dx, double dy) {
-    this->v1.pos.x += dx;
-    this->v1.pos.y += dy;
-
-    this->v2.pos.x += dx;
-    this->v2.pos.y += dy;
-
-    this->v3.pos.x += dx;
-    this->v3.pos.y += dy;
-}
-
 void Triangle::rasterize(std::vector<Fragment>& fragments) {
     if (this->v2.pos.y == this->v3.pos.y) {
         this->fill_bottom_flat_triangle(v1, v2, v3, fragments);

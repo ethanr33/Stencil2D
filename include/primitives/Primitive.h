@@ -17,8 +17,6 @@ class Primitive : public Renderable {
             this->color = c;
         }
 
-        virtual void apply_translation(double dx, double dy) = 0;
-
         virtual void rasterize(std::vector<Fragment>& fragments) = 0;
 
         virtual void apply_transformation_matrix(const Matrix& transformation_matrix) = 0;

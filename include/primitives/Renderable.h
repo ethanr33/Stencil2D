@@ -24,11 +24,6 @@ class Renderable {
             }
 
             /**
-             * @brief Applies translation transformation renderable
-             */
-            virtual void apply_translation(double dx, double dy) = 0;
-
-            /**
              * @brief Apply translation matrix transformations to renderable
              */
             virtual void apply_transformation_matrix(const Matrix& transformation_matrix) = 0;

@@ -51,15 +51,6 @@ void Line::plot_line_high(int x0, int y0, int x1, int y1, std::vector<Fragment>&
     }
 }
 
-
-void Line::apply_translation(double dx, double dy) {
-    this->start.pos.x += dx;
-    this->start.pos.y += dy;
-
-    this->end.pos.x += dx;
-    this->end.pos.y += dy;
-}
-
 void Line::rasterize(std::vector<Fragment>& fragments) {
     int x0 = this->get_start_pos().x;
     int y0 = this->get_start_pos().y;

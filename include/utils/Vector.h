@@ -12,6 +12,7 @@ struct Vector {
     double x;
     double y;
 
+    Vector() : x(0), y(0) {}
     Vector(double x, double y) : x(x), y(y) {}
 
     /**
