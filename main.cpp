@@ -4,7 +4,7 @@
 
 #include "Engine.h"
 #include "transformations/TransformationManager.h"
-#include "primitives/Point.h"
+#include "image/Image.h"
 
 int main() {
 
@@ -13,13 +13,7 @@ int main() {
 
     Engine e{width, height, true};
 
-    for (int i = 0; i < height; i++) {
-        for (int j = 0; j < width; j++) {
-            Point p = Point(Vertex(j, i));
-            p.set_color(Color(0, 255, 0));
-            e.draw(p);
-        }
-    }
+    Image i("image.png");
 
     while (e.is_active()) {
         e.tick();

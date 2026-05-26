@@ -30,11 +30,18 @@ class FileNotFoundException : public std::runtime_error {
         FileNotFoundException(const std::string& file_path) : std::runtime_error(
             "Cannot find file at " + file_path
         ) {}
-}
+};
 
 class UnknownImageFormatException : public std::runtime_error {
     public:
         UnknownImageFormatException(const std::string& file_path) : std::runtime_error(
             "Unknown or unsupported file format for image file " + file_path
+        ) {}
+};
+
+class UnexpectedFileFormatException : public std::runtime_error {
+    public:
+        UnexpectedFileFormatException(const std::string& file_path) : std::runtime_error(
+            "Unexpected or incorrect file format for file " + file_path
         ) {}
 };

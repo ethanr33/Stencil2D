@@ -11,6 +11,10 @@ class Image : public Renderable {
         // Enum representing the file format of this image
         enum class FILE_FORMAT { PNG, UNKNOWN };
 
+        // Unscaled image width/heightr
+        uint32_t base_width;
+        uint32_t base_height;
+
         // Pixel coordinates of top left point of image
         Vector pos;
 

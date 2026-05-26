@@ -14,6 +14,10 @@ struct Color {
     Color() : red(0), green(0), blue(0), alpha(0) {}
     Color(uint8_t red, uint8_t green, uint8_t blue) : red(red), green(green), blue(blue), alpha(0xFF) {}
 
+    Color(uint8_t bit_depth, uint16_t red, uint16_t green, uint16_t blue) {
+        
+    }
+
     /**
      * @brief Converts object into ARGB32 format
      */
