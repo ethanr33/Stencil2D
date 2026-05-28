@@ -1,6 +1,7 @@
 
 #include "image/Image.h"
 #include "utils/Exceptions.h"
+#include "image/CompressionAlgorithms.h"
 
 #include <fstream>
 #include <array>
@@ -121,9 +122,23 @@ void Image::load_PNG(const std::string& file_path) {
                 image_data = std::vector<std::vector<Color>>(this->base_height, std::vector<Color>(this->base_width));
             }
         } else if (chunk_name == "IDAT") {
-            for (int i = 0; i < chunk_length; i++) {
-                
+            // Streams are stored in the zlib format
+            // https://www.libpng.org/pub/png/spec/1.2/PNG-Compression.html
+            // https://www.ietf.org/rfc/rfc1950.txt
+
+            uint8_t zlib_compression_method = chunk_data[0] & 0b1111;
+            uint8_t zlib_compression_info = (chunk_data[0] & 0b11110000) >> 4;
+            uint8_t zlib_flags = chunk_data[1];
+
+            std::vector<uint8_t> compressed_data(chunk_length - 5);
+
+            for (int i = 2; i <= chunk_length - 4; i++) {
+                compressed_data.at(i - 2) = (uint8_t) chunk_data[i];
             }
+
+            CompressionAlgorithms::DEFLATE_Decompress(compressed_data);
+
+            compressed_data.push_back(3);
         }
 
         chunk_count++;

@@ -13,7 +13,7 @@ int main() {
 
     Engine e{width, height, true};
 
-    Image i("image.png");
+    Image i("pngtest.png");
 
     while (e.is_active()) {
         e.tick();
