@@ -13,7 +13,7 @@ class CompressionAlgorithms {
          * -1 if the code does not match any symbol
          * An integer corresponding to the symbol in the lit/length alphabet
          */
-        uint16_t get_symbol_from_fixed_huffman(uint16_t code);
+        static uint16_t get_symbol_from_fixed_huffman(uint16_t code);
     public:
         /**
          * @brief Decompress a block compressed using DEFLATE
