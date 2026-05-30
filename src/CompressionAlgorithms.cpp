@@ -15,6 +15,17 @@ uint16_t CompressionAlgorithms::get_symbol_from_fixed_huffman(uint16_t code) {
     }
 }
 
+uint8_t CompressionAlgorithms::reverse_byte(uint8_t byte) {
+    uint8_t res = 0;
+
+    for (int i = 0; i < 8; i++) {
+        res = (res << 1) | (byte & 0b1);
+        byte = byte >> 1;
+    }
+
+    return res;
+}
+
 void CompressionAlgorithms::DEFLATE_Decompress(std::vector<uint8_t>& block) {
     bool BFINAL = block.at(0) & 0b1;
     uint8_t BTYPE = (block.at(0) & 0b0110 >> 1);
@@ -30,10 +41,12 @@ void CompressionAlgorithms::DEFLATE_Decompress(std::vector<uint8_t>& block) {
     } else if (BTYPE == 1) {
         // Fixed huffman block
 
-        uint16_t stream = 0;
+        uint32_t stream = block.at(0);
 
-        for (int i = 0; i < block.size(); i++) {
+        for (int i = 1; i < block.size(); i++) {
             uint8_t cur_block = block.at(i);
+
+            stream = (cur_block << 8) | stream;
 
             uint16_t litlength_code = get_symbol_from_fixed_huffman(stream & 0b01111111);
 
@@ -42,10 +55,18 @@ void CompressionAlgorithms::DEFLATE_Decompress(std::vector<uint8_t>& block) {
 
                 if (litlength_code == 0xFFFF) {
                     litlength_code = get_symbol_from_fixed_huffman(stream & 0b111111111);
+                    // Must match with 9 bit huffman code
+                    stream = stream >> 9;
+                } else {
+                    // Matched with 8 bit huffman code
+                    stream = stream >> 8;
                 }
+            } else {
+                // Matched with 7 bit huffman code
+                stream = stream >> 7;
             }
 
-            if (lit
+            
 
         }
     } else if (BTYPE == 2) {

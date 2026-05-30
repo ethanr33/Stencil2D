@@ -14,6 +14,11 @@ class CompressionAlgorithms {
          * An integer corresponding to the symbol in the lit/length alphabet
          */
         static uint16_t get_symbol_from_fixed_huffman(uint16_t code);
+
+        /**
+         * Given a byte, return a new byte with the order reversed (LSB becomes MSB, etc.)
+         */
+        static uint8_t reverse_byte(uint8_t byte);
     public:
         /**
          * @brief Decompress a block compressed using DEFLATE
