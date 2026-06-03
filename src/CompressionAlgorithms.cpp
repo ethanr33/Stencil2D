@@ -1,34 +1,53 @@
 
+#include <deque>
+
 #include "image/CompressionAlgorithms.h"
+#include "utils/Bitstream.h"
 
-uint16_t CompressionAlgorithms::get_symbol_from_fixed_huffman(uint16_t code) {
-    if (code >= 0b00110000 && code <= 0b10111111) {
-        return code - 0b00110000;
-    } else if (code >= 0b110010000 && code <= 0b111111111) {
-        return (code - 0b110010000) + 143;
-    } else if (code >= 0b0000000 && code <= 0b0010111) {
-        return code + 256;
-    } else if (code >= 0b11000000 && code <= 0b11000111) {
-        return (code - 0b11000000) + 280;
+uint16_t CompressionAlgorithms::get_litlength_from_fixed_huffman(uint16_t code, uint8_t code_length) {
+        if (code >= 0b0000000 && code <= 0b0010111 && code_length == 7) {
+            return code + 256;
+        } else if (code >= 0b00110000 && code <= 0b10111111 && code_length == 8) {
+            return code - 0b00110000;
+        } else if (code >= 0b11000000 && code <= 0b11000111 && code_length == 8) {
+            return (code - 0b11000000) + 280;
+        } else if (code >= 0b110010000 && code <= 0b111111111 && code_length == 9) {
+            return (code - 0b110010000) + 144;
+        } else {
+            return 0xFFFF;
+        }
+}
+
+uint8_t CompressionAlgorithms::get_bits_for_length_code(uint16_t code) {
+    if ((code >= 257 && code <= 264) || code == 285) {
+        return 0;
+    } else if (code >= 265 && code <= 268) {
+        return 1;
+    } else if (code >= 270 && code <= 272) {
+        return 2;
+    } else if (code >= 273 && code <= 276) {
+        return 3;
+    } else if (code >= 277 && code <= 280) {
+        return 4;
+    } else if (code >= 281 && code <= 284) {
+        return 5;
     } else {
-        return 0xFFFF;
+        // invalid
+        return 0xFF;
     }
 }
 
-uint8_t CompressionAlgorithms::reverse_byte(uint8_t byte) {
-    uint8_t res = 0;
+void CompressionAlgorithms::DEFLATE_Decompress(std::vector<uint8_t>& block, std::vector<uint8_t>& decompressed) {
 
-    for (int i = 0; i < 8; i++) {
-        res = (res << 1) | (byte & 0b1);
-        byte = byte >> 1;
+    Bitstream bitstream;
+
+    // Initialize bitstream
+    for (int i = 0; i < block.size(); i++) {
+        bitstream.push_byte(block.at(i));
     }
 
-    return res;
-}
-
-void CompressionAlgorithms::DEFLATE_Decompress(std::vector<uint8_t>& block) {
-    bool BFINAL = block.at(0) & 0b1;
-    uint8_t BTYPE = (block.at(0) & 0b0110 >> 1);
+    bool BFINAL = bitstream.pop() & 0b1;
+    uint8_t BTYPE = bitstream.pop_num(2);
 
     if (BTYPE == 0) {
         // Data is not compressed
@@ -41,34 +60,68 @@ void CompressionAlgorithms::DEFLATE_Decompress(std::vector<uint8_t>& block) {
     } else if (BTYPE == 1) {
         // Fixed huffman block
 
-        uint32_t stream = block.at(0);
 
-        for (int i = 1; i < block.size(); i++) {
-            uint8_t cur_block = block.at(i);
 
-            stream = (cur_block << 8) | stream;
+        while (!bitstream.is_empty()) {
+            uint16_t code = bitstream.pop_num(7, true);
 
-            uint16_t litlength_code = get_symbol_from_fixed_huffman(stream & 0b01111111);
+            // Get first 7 bits bc code is 7-9 bits long
+
+            uint16_t litlength_code = get_litlength_from_fixed_huffman(code, 7);
 
             if (litlength_code == 0xFFFF) {
-                litlength_code = get_symbol_from_fixed_huffman(stream & 0b11111111);
+                code = (code << 1) | bitstream.pop();
 
+                litlength_code = get_litlength_from_fixed_huffman(code, 8);
+                
                 if (litlength_code == 0xFFFF) {
-                    litlength_code = get_symbol_from_fixed_huffman(stream & 0b111111111);
-                    // Must match with 9 bit huffman code
-                    stream = stream >> 9;
-                } else {
-                    // Matched with 8 bit huffman code
-                    stream = stream >> 8;
+                    code = (code << 1) | bitstream.pop();
+                    litlength_code = get_litlength_from_fixed_huffman(code, 9);
                 }
-            } else {
-                // Matched with 7 bit huffman code
-                stream = stream >> 7;
             }
 
-            
+            if (litlength_code <= 0xFF) {
+                // Value is a literal byte
+                decompressed.push_back(litlength_code);
+            } else if (litlength_code > 0x100) {
+                // Value is the length in a (length, distance) pair
+                uint8_t num_bits = get_bits_for_length_code(litlength_code);
+                uint16_t total_length = FIXED_HUFFMAN_LENGTH_BASE.at(litlength_code);
+                uint8_t length_extra = bitstream.pop_num(num_bits);
 
+                total_length += length_extra;
+
+                // Find distance
+
+                uint8_t dist_code = bitstream.pop_num(5);
+
+                // Distance code is always 5 bits
+
+                uint16_t total_dist = FIXED_HUFFMAN_DIST_BASE.at(dist_code);
+                uint8_t dist_offset_bits = FIXED_HUFFMAN_DIST_NUM_BITS.at(dist_code);
+                
+                if (dist_offset_bits == 0) {
+                    total_dist = (dist_code + 1);
+                } else {
+                    uint16_t dist_offset = bitstream.pop_num(dist_offset_bits);
+
+                    total_dist += dist_offset;
+                }
+
+                // Add bytes to stream from (length, distance) pair
+
+                size_t start_pos = decompressed.size();
+
+                for (int i = 0; i < total_length; i++) {
+                    size_t byte_pos = start_pos - total_dist + i;
+                    decompressed.push_back(decompressed.at(byte_pos));
+                }
+            } else {
+                // 256 is the EOB symbol
+                break;
+            }
         }
+
     } else if (BTYPE == 2) {
         uint8_t HLIT = (block.at(0) & 0x11111000) >> 3;
         uint8_t HDIST = block.at(1) & 0x00011111;

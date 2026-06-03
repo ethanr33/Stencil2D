@@ -18,8 +18,9 @@ class Image : public Renderable {
         // Pixel coordinates of top left point of image
         Vector pos;
 
-        // 2D vector containing image data
-        std::vector<std::vector<Color>> image_data;
+        // Vector containing image data
+        // 1D so we can easily append colors once they are read from the file
+        std::vector<Color> image_data;
 
         // Given a path to an image file, find what type of image it is
         // Let's not rely on the file extention and read the header instead, as file extensions can be arbitrary and changed by the user

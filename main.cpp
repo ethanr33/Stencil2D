@@ -13,7 +13,9 @@ int main() {
 
     Engine e{width, height, true};
 
-    Image i("pngtest.png");
+    Image i("yellowbird-midflap.png");
+
+    e.draw(i);
 
     while (e.is_active()) {
         e.tick();

@@ -47,6 +47,7 @@ Image::FILE_FORMAT Image::determine_file_format(const std::string& file_path) co
 
 }
 
+// TODO: CRC validation
 void Image::load_PNG(const std::string& file_path) {
 
     std::ifstream input_file(file_path, std::ios::binary);
@@ -118,8 +119,6 @@ void Image::load_PNG(const std::string& file_path) {
                 compression_method = (unsigned char) chunk_data[10];
                 filter_method = (unsigned char) chunk_data[11];
                 interlace_method = (unsigned char) chunk_data[12];
-
-                image_data = std::vector<std::vector<Color>>(this->base_height, std::vector<Color>(this->base_width));
             }
         } else if (chunk_name == "IDAT") {
             // Streams are stored in the zlib format
@@ -132,13 +131,29 @@ void Image::load_PNG(const std::string& file_path) {
 
             std::vector<uint8_t> compressed_data(chunk_length - 5);
 
-            for (int i = 2; i <= chunk_length - 4; i++) {
+            for (int i = 2; i < chunk_length - 4; i++) {
                 compressed_data.at(i - 2) = (uint8_t) chunk_data[i];
             }
 
-            CompressionAlgorithms::DEFLATE_Decompress(compressed_data);
+            std::vector<uint8_t> decompressed;
 
-            compressed_data.push_back(3);
+            CompressionAlgorithms::DEFLATE_Decompress(compressed_data, decompressed);
+
+            // Add decompressed image data to image object
+
+            // TODO: Handle different bit depths/color type combinations
+
+            if (bit_depth == 8 && color_type == 2) {
+                // Represents standard RGB format
+                //Two bytes per sample are used despite having a bit depth of 8
+                // First byte is unused alpha
+                for (int i = 0; i < decompressed.size(); i += 4) {
+                    Color pixel_color(decompressed.at(i + 1), decompressed.at(i + 2), decompressed.at(i + 3));
+                    this->image_data.push_back(pixel_color);
+                }
+            }
+
+            // TODO: Checksum and header validation for DEFLATE block
         }
 
         chunk_count++;
@@ -150,7 +165,9 @@ void Image::apply_transformation_matrix(const Matrix& transformation_matrix) {
 }
 
 void Image::rasterize(std::vector<Fragment>& fragments) {
-
+    for (int i = 0; i < image_data.size(); i++) {
+        fragments.push_back(Fragment(this->pos.x + (i % this->base_width), this->pos.y + (i / this->base_width), image_data.at(i), this->get_z_index()));
+    }
 }
 
 std::unique_ptr<Renderable> Image::copy() const {
