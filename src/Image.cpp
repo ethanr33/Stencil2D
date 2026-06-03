@@ -66,6 +66,9 @@ void Image::load_PNG(const std::string& file_path) {
     uint8_t filter_method;
     uint8_t interlace_method;
 
+    // Palette index For use in color type 3 and palette chunk
+    std::vector<Color> palette;
+
     // Skip PNG file header
     input_file.seekg(8);
 
@@ -154,6 +157,12 @@ void Image::load_PNG(const std::string& file_path) {
             }
 
             // TODO: Checksum and header validation for DEFLATE block
+        } else if (chunk_name == "PLTE") {
+            // Contains 1-256 palette entries
+            for (int i = 0; i < chunk_length; i += 3) {
+                // Bit depth in palette is 4
+                palette.push_back(Color(chunk_data[i], chunk_data[i + 1], chunk_data[i + 2], 4));
+            }
         }
 
         chunk_count++;
