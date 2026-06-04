@@ -18,6 +18,8 @@ class CompressionAlgorithms {
          */
         static uint16_t get_litlength_from_fixed_huffman(uint16_t code, uint8_t code_length);
 
+        static std::unordered_map<uint16_t, uint16_t> get_huffman_mapping(std::vector<uint8_t>& code_lengths);
+
         inline static const std::unordered_map<uint16_t, uint8_t> FIXED_HUFFMAN_LENGTH_BASE = {
             {257, 3},
             {258, 4},

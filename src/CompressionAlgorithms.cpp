@@ -1,5 +1,6 @@
 
 #include <deque>
+#include <algorithm>
 
 #include "image/CompressionAlgorithms.h"
 #include "utils/Bitstream.h"
@@ -35,6 +36,36 @@ uint8_t CompressionAlgorithms::get_bits_for_length_code(uint16_t code) {
         // invalid
         return 0xFF;
     }
+}
+
+static std::vector<uint16_t> get_huffman_mapping(std::vector<uint8_t>& code_lengths) {
+    std::vector<uint32_t> code_length_count(*std::max_element(code_lengths.begin(), code_lengths.end()), 0);
+
+    for (const uint8_t length : code_lengths) {
+        code_length_count.at(length)++;
+    }
+
+    // Find numerical value of smallest code for each code length
+
+    std::vector<uint16_t> next_smallest_code(code_length_count.size(), 0);
+
+    uint16_t code = 0;
+    for (int bits = 1; bits <= code_length_count.size(); bits++) {
+        code = (code + code_length_count.at(bits - 1)) << 1;
+        next_smallest_code.at(bits) = code;
+    }
+
+    // Assign numerical values to each code
+
+    std::vector<uint16_t> code_to_code_length
+
+    for (int n = 0; n <= code_length_count.size(); n++) {
+        uint8_t len = code_length_count.at(n);
+        if (len > 0) {
+            next_smallest_code.at(n)++;
+        }
+    }
+
 }
 
 void CompressionAlgorithms::DEFLATE_Decompress(std::vector<uint8_t>& block, std::vector<uint8_t>& decompressed) {
@@ -123,12 +154,24 @@ void CompressionAlgorithms::DEFLATE_Decompress(std::vector<uint8_t>& block, std:
         }
 
     } else if (BTYPE == 2) {
-        uint8_t HLIT = (block.at(0) & 0x11111000) >> 3;
-        uint8_t HDIST = block.at(1) & 0x00011111;
-        uint8_t HCLEN = ((block.at(1) & 0x11100000) >> 5) | ((block.at(2) & 0x1) << 4);
+        uint8_t HLIT = bitstream.pop_num(5);
+        uint8_t HDIST = bitstream.pop_num(5);
+        uint8_t HCLEN = bitstream.pop_num(4);
+
+        uint16_t num_lit_length_codes = HLIT + 257;
+        uint16_t num_dist_codes = HDIST + 1;
+        uint16_t num_code_length_codes = HCLEN + 4;
 
         // Read data/lengths from huffman tree
-        uint16_t num_lit_length_codes = HLIT + 257;
+
+        // Get length of code length codes
+        std::vector<uint8_t> code_lengths(19, 0);
+
+        for (int i = 0; i < num_code_length_codes; i++) {
+            code_lengths.at(i) = bitstream.pop_num(3);
+        }
+
+
     } else {
         // BTYPE should not be 3 in a valid PNG file
         return;
