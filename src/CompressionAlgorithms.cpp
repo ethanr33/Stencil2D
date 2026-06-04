@@ -38,33 +38,38 @@ uint8_t CompressionAlgorithms::get_bits_for_length_code(uint16_t code) {
     }
 }
 
-static std::vector<uint16_t> get_huffman_mapping(std::vector<uint8_t>& code_lengths) {
-    std::vector<uint32_t> code_length_count(*std::max_element(code_lengths.begin(), code_lengths.end()), 0);
+std::vector<uint16_t> CompressionAlgorithms::get_huffman_mapping(const std::vector<uint8_t>& code_lengths) {
+    std::vector<uint32_t> code_length_count(*std::max_element(code_lengths.begin(), code_lengths.end()) + 1, 0);
 
     for (const uint8_t length : code_lengths) {
-        code_length_count.at(length)++;
+        if (length != 0) {
+            code_length_count.at(length)++;
+        }
     }
 
     // Find numerical value of smallest code for each code length
 
-    std::vector<uint16_t> next_smallest_code(code_length_count.size(), 0);
+    std::vector<uint16_t> min_code_for_length(code_length_count.size(), 0);
 
     uint16_t code = 0;
-    for (int bits = 1; bits <= code_length_count.size(); bits++) {
+    for (int bits = 1; bits < code_length_count.size(); bits++) {
         code = (code + code_length_count.at(bits - 1)) << 1;
-        next_smallest_code.at(bits) = code;
+        min_code_for_length.at(bits) = code;
     }
 
     // Assign numerical values to each code
 
-    std::vector<uint16_t> code_to_code_length
+    std::vector<uint16_t> codes(code_lengths.size(), 0);
 
-    for (int n = 0; n <= code_length_count.size(); n++) {
-        uint8_t len = code_length_count.at(n);
+    for (int i = 0; i < codes.size(); i++) {
+        uint8_t len = code_lengths.at(i);
         if (len > 0) {
-            next_smallest_code.at(n)++;
+            codes.at(i) = min_code_for_length.at(len);
+            min_code_for_length.at(len)++;
         }
     }
+
+    return codes;
 
 }
 
@@ -170,6 +175,46 @@ void CompressionAlgorithms::DEFLATE_Decompress(std::vector<uint8_t>& block, std:
         for (int i = 0; i < num_code_length_codes; i++) {
             code_lengths.at(i) = bitstream.pop_num(3);
         }
+
+        std::vector<uint16_t> length_codes = get_huffman_mapping(code_lengths);
+        std::vector<uint8_t> code_length_alphabet_order = {16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15};
+
+        // Map from a binary huffman code to a (symbol, length) pair
+        // If a code does not exist, then it is not a valid huffman code
+        // If it does exist, then we need to check if the length of the code matches
+        std::unordered_map<uint16_t, std::pair<uint8_t, uint8_t>> code_to_symbol_cl;
+
+        for (int i = 0; i < length_codes.size(); i++) {
+            if (length_codes.at(i) != 0) {
+                code_to_symbol_cl.insert({length_codes.at(i), {code_length_alphabet_order.at(i), code_lengths.at(i)}});
+            }
+        }
+
+        // Next, decode data/length huffman tree
+
+        std::vector<uint8_t> litlength_code_lengths;
+
+        // Code length codes can cross over between literal/lengths and distances
+        for (int i = 0; i < num_lit_length_codes; i++) {
+            uint16_t cur_code_length_code = 0;
+            int num_bits_popped = 0;
+
+            bool has_match = false;
+
+            // Check if code exists, and if the code length calculated matches the current code's length
+            while (!(code_to_symbol_cl.find(cur_code_length_code) != code_to_symbol_cl.end() && code_to_symbol_cl.at(cur_code_length_code).second == num_bits_popped)) {
+                cur_code_length_code = (cur_code_length_code << 1) | bitstream.pop();
+                num_bits_popped++;
+            }
+
+            // Find symbol of found huffman code
+
+            uint16_t cur_symbol = code_to_symbol_cl.at(cur_code_length_code).first;
+
+            
+        }
+
+
 
 
     } else {
