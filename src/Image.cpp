@@ -154,6 +154,8 @@ void Image::load_PNG(const std::string& file_path) {
                     Color pixel_color(decompressed.at(i + 1), decompressed.at(i + 2), decompressed.at(i + 3));
                     this->image_data.push_back(pixel_color);
                 }
+            } else if (bit_depth == 4 && color_type == 3) {
+                
             }
 
             // TODO: Checksum and header validation for DEFLATE block
