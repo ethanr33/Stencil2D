@@ -47,6 +47,21 @@ Image::FILE_FORMAT Image::determine_file_format(const std::string& file_path) co
 
 }
 
+uint8_t paeth_predictor(uint8_t a, uint8_t b, uint8_t c) {
+    int p = a + b - c;
+    int pa = std::abs(p - a);
+    int pb = std::abs(p - b);
+    int pc = std::abs(p - c);
+
+    if (pa <= pb && pa <= pc) {
+        return a;
+    } else if (pb <= pc) {
+        return b;
+    } else {
+        return c;
+    }
+}
+
 // TODO: CRC validation
 void Image::load_PNG(const std::string& file_path) {
 
@@ -161,11 +176,23 @@ void Image::load_PNG(const std::string& file_path) {
                 // Represents standard RGBA format
 
                 uint64_t i = 0;
+                uint8_t scanline_filter = 0; // What filtering method should we use for this scanline? (0, 1, 2, 3, 4)
+
+                Color prefix_color_left; // Raw unfiltered data for last color seen, used for left filtering
+                Color prefix_color_top_left;
+                std::vector<Color> prefix_colors_up(this->base_width, Color(0, 0, 0));
+
+                uint8_t bpp = 4;
+
+                uint32_t cur_row = -1;
 
                 while (i + 3 < decompressed.size()) {
-                    if (i % (this->base_width + 1) == 0) {
+                    if (i % (4 * this->base_width + 1) == 0) {
                         // Filter method
-                        std::cout << decompressed.at(i) << std::endl;
+                        scanline_filter = decompressed.at(i);
+                        prefix_color_left = Color(0, 0, 0);
+                        prefix_color_top_left = Color(0, 0, 0);
+                        cur_row++;
                         i++;
                     } else {
                         // Calculate pixel color taking into account alpha
@@ -176,6 +203,43 @@ void Image::load_PNG(const std::string& file_path) {
                         uint8_t foreground_blue = decompressed.at(i + 2);
                         uint8_t foreground_alpha = decompressed.at(i + 3);
 
+                        uint64_t width_index = ((i - 4 * this->base_height * cur_row - cur_row - 1) / 4) % 4;
+
+                        if (scanline_filter == 1) {
+                            if (i >= 1 + bpp) {
+                                foreground_red += prefix_color_left.red;
+                                foreground_green += prefix_color_left.green;
+                                foreground_blue += prefix_color_left.blue;
+                                foreground_alpha += prefix_color_left.alpha;
+                            }
+                        } else if (scanline_filter == 2) {
+                            foreground_red += prefix_colors_up.at(width_index).red;
+                            foreground_green += prefix_colors_up.at(width_index).green;
+                            foreground_blue += prefix_colors_up.at(width_index).blue;
+                            foreground_alpha += prefix_colors_up.at(width_index).alpha;
+                        } else if (scanline_filter == 3) {
+                            // TODO: Implement average filtering method
+                        } else {
+                            // Paeth filtering
+
+                            foreground_red += paeth_predictor(prefix_color_left.red, prefix_colors_up.at(width_index).red, prefix_color_top_left.red);
+                            foreground_green += paeth_predictor(prefix_color_left.green, prefix_colors_up.at(width_index).green, prefix_color_top_left.green);
+                            foreground_blue += paeth_predictor(prefix_color_left.blue, prefix_colors_up.at(width_index).blue, prefix_color_top_left.blue);
+                            foreground_alpha += paeth_predictor(prefix_color_left.alpha, prefix_colors_up.at(width_index).alpha, prefix_color_top_left.alpha);
+                        }
+
+                        // update prefixes
+
+                        prefix_color_top_left = prefix_colors_up.at(width_index);
+
+                        prefix_colors_up.at(width_index) = Color(foreground_red, foreground_green, foreground_blue);
+                        prefix_colors_up.at(width_index).alpha = foreground_alpha;
+
+                        prefix_color_left = Color(foreground_red, foreground_green, foreground_blue);
+                        prefix_color_left.alpha = foreground_alpha;
+
+                        // Calculate composite color for this pixel
+
                         double alpha_cf = foreground_alpha / 255.0;
                         double alpha_cb = background_color.alpha / 255.0;
 
@@ -185,7 +249,7 @@ void Image::load_PNG(const std::string& file_path) {
                         double blue_composite = (foreground_blue * alpha_cf + background_color.blue * alpha_cb * (1 - alpha_cf)) / alpha_composite;
 
                         Color res(red_composite, green_composite, blue_composite);
-                        res.alpha = 1; // Composite pixel must be fully opaque
+                        res.alpha = alpha_composite;
 
                         this->image_data.push_back(res);
                         i += 4;
