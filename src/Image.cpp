@@ -60,7 +60,7 @@ void Image::load_PNG(const std::string& file_path) {
     uint32_t cur_row = 0;
     uint32_t cur_col = 0;
 
-    uint8_t bit_depth;
+    uint8_t bit_depth; // Number of bits per sample
     uint8_t color_type;
     uint8_t compression_method;
     uint8_t filter_method;
@@ -68,6 +68,9 @@ void Image::load_PNG(const std::string& file_path) {
 
     // Palette index For use in color type 3 and palette chunk
     std::vector<Color> palette;
+
+    // Background color when pixels are transparent
+    Color background_color;
 
     // Skip PNG file header
     input_file.seekg(8);
@@ -97,9 +100,9 @@ void Image::load_PNG(const std::string& file_path) {
 
         chunk_name = name_data;
 
-        char chunk_data[chunk_length];
+        uint8_t chunk_data[chunk_length];
 
-        input_file.read(chunk_data, chunk_length);
+        input_file.read((char*) chunk_data, chunk_length);
 
         char CRC[4];
         input_file.read(CRC, 4);
@@ -114,14 +117,14 @@ void Image::load_PNG(const std::string& file_path) {
                 // Header chunk can only appear as the first chunk
                 throw UnexpectedFileFormatException(file_path);
             } else {
-                this->base_width = ((uint8_t) chunk_data[0] << 24) | ((uint8_t) chunk_data[1] << 16) | ((uint8_t) chunk_data[2] << 8) | (uint8_t) chunk_data[3];
-                this->base_height = ((uint8_t) chunk_data[4] << 24) | ((uint8_t) chunk_data[5] << 16) | ((uint8_t) chunk_data[6] << 8) | (uint8_t) chunk_data[7];
+                this->base_width = (chunk_data[0] << 24) | (chunk_data[1] << 16) | (chunk_data[2] << 8) | chunk_data[3];
+                this->base_height = (chunk_data[4] << 24) | (chunk_data[5] << 16) | (chunk_data[6] << 8) | chunk_data[7];
 
-                bit_depth = (unsigned char) chunk_data[8];
-                color_type = (unsigned char) chunk_data[9];
-                compression_method = (unsigned char) chunk_data[10];
-                filter_method = (unsigned char) chunk_data[11];
-                interlace_method = (unsigned char) chunk_data[12];
+                bit_depth = chunk_data[8];
+                color_type = chunk_data[9];
+                compression_method = chunk_data[10];
+                filter_method = chunk_data[11];
+                interlace_method = chunk_data[12];
             }
         } else if (chunk_name == "IDAT") {
             // Streams are stored in the zlib format
@@ -154,16 +157,72 @@ void Image::load_PNG(const std::string& file_path) {
                     Color pixel_color(decompressed.at(i + 1), decompressed.at(i + 2), decompressed.at(i + 3));
                     this->image_data.push_back(pixel_color);
                 }
+            } else if (bit_depth == 8 && color_type == 6) {
+                // Represents standard RGBA format
+
+                uint64_t i = 0;
+
+                while (i + 3 < decompressed.size()) {
+                    if (i % (this->base_width + 1) == 0) {
+                        // Filter method
+                        std::cout << decompressed.at(i) << std::endl;
+                        i++;
+                    } else {
+                        // Calculate pixel color taking into account alpha
+                        // Let "cf" be the color of the foreground pixel, "cb" is the background color
+
+                        uint8_t foreground_red = decompressed.at(i);
+                        uint8_t foreground_green = decompressed.at(i + 1);
+                        uint8_t foreground_blue = decompressed.at(i + 2);
+                        uint8_t foreground_alpha = decompressed.at(i + 3);
+
+                        double alpha_cf = foreground_alpha / 255.0;
+                        double alpha_cb = background_color.alpha / 255.0;
+
+                        double alpha_composite = alpha_cf + alpha_cb * (1 - alpha_cf);
+                        double red_composite = (foreground_red * alpha_cf + background_color.red * alpha_cb * (1 - alpha_cf)) / alpha_composite;
+                        double green_composite = (foreground_green * alpha_cf + background_color.green * alpha_cb * (1 - alpha_cf)) / alpha_composite;
+                        double blue_composite = (foreground_blue * alpha_cf + background_color.blue * alpha_cb * (1 - alpha_cf)) / alpha_composite;
+
+                        Color res(red_composite, green_composite, blue_composite);
+                        res.alpha = 1; // Composite pixel must be fully opaque
+
+                        this->image_data.push_back(res);
+                        i += 4;
+                    }
+                }
             } else if (bit_depth == 4 && color_type == 3) {
-                
+                int skip_count = 0;
+
+                for (int i = 0; i < decompressed.size(); i++) {
+                    // Skip over first byte because it determines filtering method
+                    // TODO: Implement filtering methods
+
+                    // This is filtering mode 0
+                    if (i % ((this->base_width >> 1) + 1) != 0) {
+                        this->image_data.push_back(palette.at((decompressed.at(i) & 0xF0) >> 4));
+                        this->image_data.push_back(palette.at((decompressed.at(i) & 0x0F)));
+                    } else {
+                        skip_count++;
+                    }
+                }
+
+                std::cout << skip_count << std::endl;
             }
+
 
             // TODO: Checksum and header validation for DEFLATE block
         } else if (chunk_name == "PLTE") {
             // Contains 1-256 palette entries
             for (int i = 0; i < chunk_length; i += 3) {
                 // Bit depth in palette is 4
-                palette.push_back(Color(chunk_data[i], chunk_data[i + 1], chunk_data[i + 2], 4));
+                palette.push_back(Color(chunk_data[i], chunk_data[i + 1], chunk_data[i + 2]));
+            }
+        } else if (chunk_name == "bKGD") {
+            // Chunk to set default background color
+            if (color_type == 6) {
+                background_color = Color(chunk_data[1], chunk_data[3], chunk_data[5]);
+
             }
         }
 

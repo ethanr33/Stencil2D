@@ -24,7 +24,7 @@ uint8_t CompressionAlgorithms::get_bits_for_length_code(uint16_t code) {
         return 0;
     } else if (code >= 265 && code <= 268) {
         return 1;
-    } else if (code >= 270 && code <= 272) {
+    } else if (code >= 269 && code <= 272) {
         return 2;
     } else if (code >= 273 && code <= 276) {
         return 3;
@@ -97,8 +97,6 @@ void CompressionAlgorithms::DEFLATE_Decompress(std::vector<uint8_t>& block, std:
         block.erase(block.begin(), block.begin() + 5);
     } else if (BTYPE == 1) {
         // Fixed huffman block
-
-
 
         while (!bitstream.is_empty()) {
             uint16_t code = bitstream.pop_num(7, true);
@@ -297,22 +295,28 @@ void CompressionAlgorithms::DEFLATE_Decompress(std::vector<uint8_t>& block, std:
 
                 // Find total length
 
-                uint16_t total_length = FIXED_HUFFMAN_DIST_BASE.at(cur_symbol);
-                uint8_t length_offset = bitstream.pop_num(FIXED_HUFFMAN_DIST_NUM_BITS.at(cur_symbol));
+                uint16_t total_length = FIXED_HUFFMAN_LENGTH_BASE.at(cur_symbol);
+                uint8_t length_offset = bitstream.pop_num(get_bits_for_length_code(cur_symbol));
 
                 total_length += length_offset;
 
-                // Find total dist ance
+                // Find total distance
 
-                uint8_t dist_code = bitstream.pop_num(5);
+                uint16_t cur_dist_code = 0;
+                uint8_t cur_dist_code_length = 0;
 
-                // Distance code is always 5 bits
+                while (code_to_dist_symbol.find((cur_dist_code << 16) | cur_dist_code_length) == code_to_dist_symbol.end()) {
+                    cur_dist_code = (cur_dist_code << 1) | bitstream.pop();
+                    cur_dist_code_length++;
+                }
 
-                uint16_t total_dist = FIXED_HUFFMAN_DIST_BASE.at(dist_code);
-                uint8_t dist_offset_bits = FIXED_HUFFMAN_DIST_NUM_BITS.at(dist_code);
+                uint8_t dist_symbol = code_to_dist_symbol.at((cur_dist_code << 16) | cur_dist_code_length);
+
+                uint16_t total_dist = FIXED_HUFFMAN_DIST_BASE.at(dist_symbol);
+                uint8_t dist_offset_bits = FIXED_HUFFMAN_DIST_NUM_BITS.at(dist_symbol);
                 
                 if (dist_offset_bits == 0) {
-                    total_dist = (dist_code + 1);
+                    total_dist = (dist_symbol + 1);
                 } else {
                     uint16_t dist_offset = bitstream.pop_num(dist_offset_bits);
 
@@ -323,18 +327,12 @@ void CompressionAlgorithms::DEFLATE_Decompress(std::vector<uint8_t>& block, std:
 
                 int start_pos = decompressed.size() - total_dist;
 
-                
-
-                if (start_pos >= 0) {
-                    for (int i = 0; i < total_length; i++) {
-                        decompressed.push_back(decompressed.at(start_pos + i));
-                    }
-                } else {
-                    for (int i = 0; i < -total_dist; i++) {
-                        decompressed.push_back(decompressed.at(i));
-                    }
+                for (int i = 0; i < total_length; i++) {
+                    decompressed.push_back(decompressed.at(start_pos + i));
                 }
 
+            } else {
+                break;
             }
         }
 

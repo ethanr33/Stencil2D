@@ -18,9 +18,9 @@ struct Color {
             this->green = green;
             this->blue = blue;
         } else if (bit_depth == 4) {
-            this->red = ((double) red / 16) * 256;
-            this->green = ((double) green / 16) * 256;
-            this->blue = ((double) blue / 16) * 256;
+            this->red = ((double) red / 255) * 16;
+            this->green = ((double) green / 255) * 16;
+            this->blue = ((double) blue / 255) * 16;
         }
     }
 
@@ -38,4 +38,5 @@ struct Color {
     bool operator!=(const Color& rhs) const {
         return !(*this == rhs);
     }
+
 };

@@ -8,12 +8,12 @@
 
 int main() {
 
-    int width = 1920;
-    int height = 1080;
+    int width = 700;
+    int height = 700;
 
     Engine e{width, height, true};
 
-    Image i("yellowbird-midflap.png");
+    Image i("background-day.png");
 
     e.draw(i);
 
