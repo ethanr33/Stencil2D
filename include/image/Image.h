@@ -34,6 +34,10 @@ class Image : public Renderable {
             return pos;
         }
 
+        void set_pos(Vector new_pos) {
+            this->pos = new_pos;
+        }
+
         // Load image from file path
         Image(const std::string& file_path);
 

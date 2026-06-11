@@ -203,7 +203,8 @@ void Image::load_PNG(const std::string& file_path) {
                         uint8_t foreground_blue = decompressed.at(i + 2);
                         uint8_t foreground_alpha = decompressed.at(i + 3);
 
-                        uint64_t width_index = ((i - 4 * this->base_height * cur_row - cur_row - 1) / 4) % 4;
+                        // Funky formula to calculate x coordinate of current pixel
+                        uint64_t width_index = ((i - 4 * this->base_width * cur_row - cur_row - 1) / 4) % this->base_width;
 
                         if (scanline_filter == 1) {
                             if (i >= 1 + bpp) {
@@ -255,23 +256,24 @@ void Image::load_PNG(const std::string& file_path) {
                         i += 4;
                     }
                 }
-            } else if (bit_depth == 4 && color_type == 3) {
-                int skip_count = 0;
-
+            } else if (color_type == 3) {
                 for (int i = 0; i < decompressed.size(); i++) {
                     // Skip over first byte because it determines filtering method
                     // TODO: Implement filtering methods
 
-                    // This is filtering mode 0
-                    if (i % ((this->base_width >> 1) + 1) != 0) {
-                        this->image_data.push_back(palette.at((decompressed.at(i) & 0xF0) >> 4));
-                        this->image_data.push_back(palette.at((decompressed.at(i) & 0x0F)));
+                    if (bit_depth == 4) {
+                        // This is filtering mode 0
+                        if (i % ((this->base_width >> 1) + 1) != 0) {
+                            this->image_data.push_back(palette.at((decompressed.at(i) & 0xF0) >> 4));
+                            this->image_data.push_back(palette.at((decompressed.at(i) & 0x0F)));
+                        }
                     } else {
-                        skip_count++;
+                        if (i % (this->base_width + 1) != 0) {
+                            this->image_data.push_back(palette.at(decompressed.at(i)));
+                        }
                     }
                 }
 
-                std::cout << skip_count << std::endl;
             }
 
 
