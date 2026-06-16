@@ -19,20 +19,7 @@ int main() {
 
     e.draw(bg);
 
-    uint32_t y_pos = 0;
-
     while (e.is_active()) {
-
-        Image player("yellowbird-midflap.png");
-        player.set_z_index(2);
-
-        player.set_pos(Vector(0, y_pos));
-
-        y_pos++;
-
-        e.draw(bg);
-        e.draw(player);
-
         e.tick();
     }
 

@@ -4,7 +4,7 @@
 #include "image/CompressionAlgorithms.h"
 
 #include <fstream>
-#include <array>
+#include <cmath>
 
 Image::Image(const std::string& file_path) {
     Image::FILE_FORMAT file_type = this->determine_file_format(file_path);
@@ -59,6 +59,163 @@ uint8_t paeth_predictor(uint8_t a, uint8_t b, uint8_t c) {
         return b;
     } else {
         return c;
+    }
+}
+
+void Image::construct_fragments(uint8_t color_type, uint8_t bit_depth, const std::vector<uint8_t>& raw_data) {
+    
+    int i = 0;
+
+    uint8_t filtering_method = 0;
+
+    uint8_t bits_per_pixel;
+
+    switch (color_type) {
+        case 2:
+            // True color
+            bits_per_pixel = 3 * bit_depth;
+            break;
+        case 4:
+            // Grayscale and alpha
+            bits_per_pixel = 2 * bit_depth;
+            break;
+        case 6:
+            // True color and alpha
+            bits_per_pixel = 4 * bit_depth;
+            break;
+        default:
+            // Invalid color type
+            return;
+    }
+
+    struct Prefixes {
+        Color left = Color(0, 0, 0);
+        Color upper_left = Color(0, 0, 0);
+        std::vector<Color> upper;
+    } prefixes;
+
+    prefixes.upper = std::vector<Color>(this->base_width);
+
+    uint64_t width_index;
+    
+    while (i < raw_data.size()) {
+        if (i % (this->base_width * (bits_per_pixel / 8) + 1) == 0) {
+            // Determine filtering method
+            filtering_method = raw_data.at(i);
+            // Update prefixes for filtering
+            prefixes.left = Color(0, 0, 0);
+            prefixes.upper_left = Color(0, 0, 0);
+            width_index = 0;
+            i++;
+        } else {
+            // Read and process pixel
+
+            // Calculate pixel color taking into account alpha
+            // Let "cf" be the color of the foreground pixel, "cb" is the background color
+
+            uint8_t foreground_red;
+            uint8_t foreground_green;
+            uint8_t foreground_blue;
+            uint8_t foreground_alpha;
+
+            if (color_type == 2) {
+                // Alpha is not supported here
+                if (bit_depth == 8) {
+                    foreground_red = raw_data.at(i + 1);
+                    foreground_blue = raw_data.at(i + 2);
+                    foreground_green = raw_data.at(i + 3);
+                } else if (bit_depth == 16) {
+                    foreground_red = (raw_data.at(i + 1) << 8) | raw_data.at(i + 2);
+                    foreground_blue = (raw_data.at(i + 3) << 8) | raw_data.at(i + 4);
+                    foreground_green = (raw_data.at(i + 5) << 8) | raw_data.at(i + 6);
+                }
+            } else if (color_type == 6) {
+                // Alpha is suppprted here
+                if (bit_depth == 8) {
+                    foreground_red = raw_data.at(i);
+                    foreground_blue = raw_data.at(i + 1);
+                    foreground_green = raw_data.at(i + 2);
+                    foreground_alpha = raw_data.at(i + 3);
+                } else if (bit_depth == 16) {
+                    foreground_red = (raw_data.at(i) << 8) | raw_data.at(i + 1);
+                    foreground_blue = (raw_data.at(i + 2) << 8) | raw_data.at(i + 3);
+                    foreground_green = (raw_data.at(i + 4) << 8) | raw_data.at(i + 5);
+                    foreground_green = (raw_data.at(i + 6) << 8) | raw_data.at(i + 7);
+                }
+            } else {
+                // Grayscale with alpha
+                if (bit_depth == 8) {
+                    foreground_red = raw_data.at(i);
+                    foreground_blue = raw_data.at(i);
+                    foreground_green = raw_data.at(i);
+                    foreground_alpha = raw_data.at(i + 1);
+                } else if (bit_depth == 16) {
+                    foreground_red = (raw_data.at(i) << 8) | raw_data.at(i + 1);
+                    foreground_blue = (raw_data.at(i) << 8) | raw_data.at(i + 1);
+                    foreground_green = (raw_data.at(i) << 8) | raw_data.at(i + 1);
+                    foreground_green = (raw_data.at(i + 2) << 8) | raw_data.at(i + 3);
+                }
+            }
+
+            if (filtering_method == 1) {
+                if (i >= 1 + (bits_per_pixel / 8)) {
+                    foreground_red += prefixes.left.red;
+                    foreground_green += prefixes.left.green;
+                    foreground_blue += prefixes.left.blue;
+                    foreground_alpha += prefixes.left.alpha;
+                }
+            } else if (filtering_method == 2) {
+                foreground_red += prefixes.upper.at(width_index).red;
+                foreground_green += prefixes.upper.at(width_index).green;
+                foreground_blue += prefixes.upper.at(width_index).blue;
+                foreground_alpha += prefixes.upper.at(width_index).alpha;
+            } else if (filtering_method == 3) {
+                // TODO: Implement average filtering method
+            } else {
+                // Paeth filtering
+
+                foreground_red += paeth_predictor(prefixes.left.red, prefixes.upper.at(width_index).red, prefixes.upper_left.red);
+                foreground_green += paeth_predictor(prefixes.left.green, prefixes.upper.at(width_index).green, prefixes.upper_left.green);
+                foreground_blue += paeth_predictor(prefixes.left.blue, prefixes.upper.at(width_index).blue, prefixes.upper_left.blue);
+                foreground_alpha += paeth_predictor(prefixes.left.alpha, prefixes.upper.at(width_index).alpha, prefixes.upper_left.alpha);
+            }
+
+            prefixes.left = Color(foreground_red, foreground_green, foreground_blue);
+            prefixes.left.alpha = foreground_alpha;
+
+            prefixes.upper_left = prefixes.upper.at(width_index);
+
+            prefixes.upper.at(width_index) = Color(foreground_red, foreground_green, foreground_blue);
+            prefixes.upper.at(width_index).alpha = foreground_alpha;
+
+            if (color_type == 4 || color_type == 6) {
+                // double alpha_cf = foreground_alpha / 255.0;
+                // double alpha_cb = background_color.alpha / 255.0;
+
+                // double alpha_composite = alpha_cf + alpha_cb * (1 - alpha_cf);
+                // double red_composite = (foreground_red * alpha_cf + background_color.red * alpha_cb * (1 - alpha_cf)) / alpha_composite;
+                // double green_composite = (foreground_green * alpha_cf + background_color.green * alpha_cb * (1 - alpha_cf)) / alpha_composite;
+                // double blue_composite = (foreground_blue * alpha_cf + background_color.blue * alpha_cb * (1 - alpha_cf)) / alpha_composite;
+
+                // Color res(red_composite, green_composite, blue_composite);
+                // res.alpha = alpha_composite;
+
+                // this->image_data.push_back(res);
+
+                Color res = Color(foreground_red, foreground_green, foreground_blue);
+                res.alpha = foreground_alpha;
+                this->image_data.push_back(res);
+            } else {
+                Color res = Color(foreground_red, foreground_green, foreground_blue);
+                res.alpha = 0; // Pixel is fully opaque if no alpha
+                this->image_data.push_back(Color(foreground_red, foreground_green, foreground_blue));
+            }
+
+            width_index++;
+
+            // Increment to next pixel
+            i += std::ceil(bits_per_pixel / 8);
+        }
     }
 }
 
@@ -164,98 +321,11 @@ void Image::load_PNG(const std::string& file_path) {
 
             // TODO: Handle different bit depths/color type combinations
 
-            if (bit_depth == 8 && color_type == 2) {
+            if (color_type == 2) {
                 // Represents standard RGB format
-                //Two bytes per sample are used despite having a bit depth of 8
-                // First byte is unused alpha
-                for (int i = 0; i < decompressed.size(); i += 4) {
-                    Color pixel_color(decompressed.at(i + 1), decompressed.at(i + 2), decompressed.at(i + 3));
-                    this->image_data.push_back(pixel_color);
-                }
-            } else if (bit_depth == 8 && color_type == 6) {
-                // Represents standard RGBA format
-
-                uint64_t i = 0;
-                uint8_t scanline_filter = 0; // What filtering method should we use for this scanline? (0, 1, 2, 3, 4)
-
-                Color prefix_color_left; // Raw unfiltered data for last color seen, used for left filtering
-                Color prefix_color_top_left;
-                std::vector<Color> prefix_colors_up(this->base_width, Color(0, 0, 0));
-
-                uint8_t bpp = 4;
-
-                uint32_t cur_row = -1;
-
-                while (i + 3 < decompressed.size()) {
-                    if (i % (4 * this->base_width + 1) == 0) {
-                        // Filter method
-                        scanline_filter = decompressed.at(i);
-                        prefix_color_left = Color(0, 0, 0);
-                        prefix_color_top_left = Color(0, 0, 0);
-                        cur_row++;
-                        i++;
-                    } else {
-                        // Calculate pixel color taking into account alpha
-                        // Let "cf" be the color of the foreground pixel, "cb" is the background color
-
-                        uint8_t foreground_red = decompressed.at(i);
-                        uint8_t foreground_green = decompressed.at(i + 1);
-                        uint8_t foreground_blue = decompressed.at(i + 2);
-                        uint8_t foreground_alpha = decompressed.at(i + 3);
-
-                        // Funky formula to calculate x coordinate of current pixel
-                        uint64_t width_index = ((i - 4 * this->base_width * cur_row - cur_row - 1) / 4) % this->base_width;
-
-                        if (scanline_filter == 1) {
-                            if (i >= 1 + bpp) {
-                                foreground_red += prefix_color_left.red;
-                                foreground_green += prefix_color_left.green;
-                                foreground_blue += prefix_color_left.blue;
-                                foreground_alpha += prefix_color_left.alpha;
-                            }
-                        } else if (scanline_filter == 2) {
-                            foreground_red += prefix_colors_up.at(width_index).red;
-                            foreground_green += prefix_colors_up.at(width_index).green;
-                            foreground_blue += prefix_colors_up.at(width_index).blue;
-                            foreground_alpha += prefix_colors_up.at(width_index).alpha;
-                        } else if (scanline_filter == 3) {
-                            // TODO: Implement average filtering method
-                        } else {
-                            // Paeth filtering
-
-                            foreground_red += paeth_predictor(prefix_color_left.red, prefix_colors_up.at(width_index).red, prefix_color_top_left.red);
-                            foreground_green += paeth_predictor(prefix_color_left.green, prefix_colors_up.at(width_index).green, prefix_color_top_left.green);
-                            foreground_blue += paeth_predictor(prefix_color_left.blue, prefix_colors_up.at(width_index).blue, prefix_color_top_left.blue);
-                            foreground_alpha += paeth_predictor(prefix_color_left.alpha, prefix_colors_up.at(width_index).alpha, prefix_color_top_left.alpha);
-                        }
-
-                        // update prefixes
-
-                        prefix_color_top_left = prefix_colors_up.at(width_index);
-
-                        prefix_colors_up.at(width_index) = Color(foreground_red, foreground_green, foreground_blue);
-                        prefix_colors_up.at(width_index).alpha = foreground_alpha;
-
-                        prefix_color_left = Color(foreground_red, foreground_green, foreground_blue);
-                        prefix_color_left.alpha = foreground_alpha;
-
-                        // Calculate composite color for this pixel
-
-                        double alpha_cf = foreground_alpha / 255.0;
-                        double alpha_cb = background_color.alpha / 255.0;
-
-                        double alpha_composite = alpha_cf + alpha_cb * (1 - alpha_cf);
-                        double red_composite = (foreground_red * alpha_cf + background_color.red * alpha_cb * (1 - alpha_cf)) / alpha_composite;
-                        double green_composite = (foreground_green * alpha_cf + background_color.green * alpha_cb * (1 - alpha_cf)) / alpha_composite;
-                        double blue_composite = (foreground_blue * alpha_cf + background_color.blue * alpha_cb * (1 - alpha_cf)) / alpha_composite;
-
-                        Color res(red_composite, green_composite, blue_composite);
-                        res.alpha = alpha_composite;
-
-                        this->image_data.push_back(res);
-                        i += 4;
-                    }
-                }
+                this->construct_fragments(2, bit_depth, decompressed);
+            } else if (color_type == 6) {
+                this->construct_fragments(6, bit_depth, decompressed);
             } else if (color_type == 3) {
                 for (int i = 0; i < decompressed.size(); i++) {
                     // Skip over first byte because it determines filtering method
