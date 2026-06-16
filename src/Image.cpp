@@ -62,7 +62,7 @@ uint8_t paeth_predictor(uint8_t a, uint8_t b, uint8_t c) {
     }
 }
 
-void Image::construct_fragments(uint8_t color_type, uint8_t bit_depth, const std::vector<uint8_t>& raw_data) {
+void Image::construct_fragments(uint8_t color_type, uint8_t bit_depth, const std::vector<uint8_t>& raw_data, Color background_color) {
     
     int i = 0;
 
@@ -122,38 +122,38 @@ void Image::construct_fragments(uint8_t color_type, uint8_t bit_depth, const std
                 // Alpha is not supported here
                 if (bit_depth == 8) {
                     foreground_red = raw_data.at(i + 1);
-                    foreground_blue = raw_data.at(i + 2);
-                    foreground_green = raw_data.at(i + 3);
+                    foreground_green = raw_data.at(i + 2);
+                    foreground_blue = raw_data.at(i + 3);
                 } else if (bit_depth == 16) {
                     foreground_red = (raw_data.at(i + 1) << 8) | raw_data.at(i + 2);
-                    foreground_blue = (raw_data.at(i + 3) << 8) | raw_data.at(i + 4);
-                    foreground_green = (raw_data.at(i + 5) << 8) | raw_data.at(i + 6);
+                    foreground_green = (raw_data.at(i + 3) << 8) | raw_data.at(i + 4);
+                    foreground_blue = (raw_data.at(i + 5) << 8) | raw_data.at(i + 6);
                 }
             } else if (color_type == 6) {
                 // Alpha is suppprted here
                 if (bit_depth == 8) {
                     foreground_red = raw_data.at(i);
-                    foreground_blue = raw_data.at(i + 1);
-                    foreground_green = raw_data.at(i + 2);
+                    foreground_green = raw_data.at(i + 1);
+                    foreground_blue = raw_data.at(i + 2);
                     foreground_alpha = raw_data.at(i + 3);
                 } else if (bit_depth == 16) {
                     foreground_red = (raw_data.at(i) << 8) | raw_data.at(i + 1);
-                    foreground_blue = (raw_data.at(i + 2) << 8) | raw_data.at(i + 3);
-                    foreground_green = (raw_data.at(i + 4) << 8) | raw_data.at(i + 5);
-                    foreground_green = (raw_data.at(i + 6) << 8) | raw_data.at(i + 7);
+                    foreground_green = (raw_data.at(i + 2) << 8) | raw_data.at(i + 3);
+                    foreground_blue = (raw_data.at(i + 4) << 8) | raw_data.at(i + 5);
+                    foreground_alpha = (raw_data.at(i + 6) << 8) | raw_data.at(i + 7);
                 }
             } else {
                 // Grayscale with alpha
                 if (bit_depth == 8) {
                     foreground_red = raw_data.at(i);
-                    foreground_blue = raw_data.at(i);
                     foreground_green = raw_data.at(i);
+                    foreground_blue = raw_data.at(i);
                     foreground_alpha = raw_data.at(i + 1);
                 } else if (bit_depth == 16) {
                     foreground_red = (raw_data.at(i) << 8) | raw_data.at(i + 1);
-                    foreground_blue = (raw_data.at(i) << 8) | raw_data.at(i + 1);
                     foreground_green = (raw_data.at(i) << 8) | raw_data.at(i + 1);
-                    foreground_green = (raw_data.at(i + 2) << 8) | raw_data.at(i + 3);
+                    foreground_blue = (raw_data.at(i) << 8) | raw_data.at(i + 1);
+                    foreground_alpha = (raw_data.at(i + 2) << 8) | raw_data.at(i + 3);
                 }
             }
 
@@ -189,25 +189,21 @@ void Image::construct_fragments(uint8_t color_type, uint8_t bit_depth, const std
             prefixes.upper.at(width_index).alpha = foreground_alpha;
 
             if (color_type == 4 || color_type == 6) {
-                // double alpha_cf = foreground_alpha / 255.0;
-                // double alpha_cb = background_color.alpha / 255.0;
+                double alpha_cf = foreground_alpha / 255.0;
+                double alpha_cb = background_color.alpha / 255.0;
 
-                // double alpha_composite = alpha_cf + alpha_cb * (1 - alpha_cf);
-                // double red_composite = (foreground_red * alpha_cf + background_color.red * alpha_cb * (1 - alpha_cf)) / alpha_composite;
-                // double green_composite = (foreground_green * alpha_cf + background_color.green * alpha_cb * (1 - alpha_cf)) / alpha_composite;
-                // double blue_composite = (foreground_blue * alpha_cf + background_color.blue * alpha_cb * (1 - alpha_cf)) / alpha_composite;
+                double alpha_composite = alpha_cf + alpha_cb * (1 - alpha_cf);
+                double red_composite = (foreground_red * alpha_cf + background_color.red * alpha_cb * (1 - alpha_cf)) / alpha_composite;
+                double green_composite = (foreground_green * alpha_cf + background_color.green * alpha_cb * (1 - alpha_cf)) / alpha_composite;
+                double blue_composite = (foreground_blue * alpha_cf + background_color.blue * alpha_cb * (1 - alpha_cf)) / alpha_composite;
 
-                // Color res(red_composite, green_composite, blue_composite);
-                // res.alpha = alpha_composite;
+                Color res(red_composite, green_composite, blue_composite);
+                res.alpha = alpha_composite;
 
-                // this->image_data.push_back(res);
-
-                Color res = Color(foreground_red, foreground_green, foreground_blue);
-                res.alpha = foreground_alpha;
                 this->image_data.push_back(res);
             } else {
                 Color res = Color(foreground_red, foreground_green, foreground_blue);
-                res.alpha = 0; // Pixel is fully opaque if no alpha
+                res.alpha = 1; // Pixel is fully opaque if no alpha
                 this->image_data.push_back(Color(foreground_red, foreground_green, foreground_blue));
             }
 
@@ -323,9 +319,9 @@ void Image::load_PNG(const std::string& file_path) {
 
             if (color_type == 2) {
                 // Represents standard RGB format
-                this->construct_fragments(2, bit_depth, decompressed);
+                this->construct_fragments(2, bit_depth, decompressed, background_color);
             } else if (color_type == 6) {
-                this->construct_fragments(6, bit_depth, decompressed);
+                this->construct_fragments(6, bit_depth, decompressed, background_color);
             } else if (color_type == 3) {
                 for (int i = 0; i < decompressed.size(); i++) {
                     // Skip over first byte because it determines filtering method
@@ -372,6 +368,9 @@ void Image::apply_transformation_matrix(const Matrix& transformation_matrix) {
 
 void Image::rasterize(std::vector<Fragment>& fragments) {
     for (int i = 0; i < image_data.size(); i++) {
+        if (i / this->base_width == 500) {
+            std::cout << "got here" << std::endl;   
+        }
         fragments.push_back(Fragment(this->pos.x + (i % this->base_width), this->pos.y + (i / this->base_width), image_data.at(i), this->get_z_index()));
     }
 }

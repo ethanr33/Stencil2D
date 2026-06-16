@@ -29,7 +29,7 @@ class Image : public Renderable {
         // Constructor helper function, reads data from a PNG file into the current object
         void load_PNG(const std::string& file_path);
 
-        void construct_fragments(uint8_t color_type, uint8_t bit_depth, const std::vector<uint8_t>& raw_data);
+        void construct_fragments(uint8_t color_type, uint8_t bit_depth, const std::vector<uint8_t>& raw_data, Color background_color);
     public:
 
         Vector get_pos() const {
