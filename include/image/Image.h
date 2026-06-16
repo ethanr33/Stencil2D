@@ -30,6 +30,7 @@ class Image : public Renderable {
         void load_PNG(const std::string& file_path);
 
         void construct_fragments(uint8_t color_type, uint8_t bit_depth, const std::vector<uint8_t>& raw_data, Color background_color);
+        void construct_fragments(uint8_t color_type, uint8_t bit_depth, const std::vector<uint8_t>& raw_data, const std::vector<Color>& palette, Color background_color);
     public:
 
         Vector get_pos() const {

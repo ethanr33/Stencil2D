@@ -62,6 +62,119 @@ uint8_t paeth_predictor(uint8_t a, uint8_t b, uint8_t c) {
     }
 }
 
+void Image::construct_fragments(uint8_t color_type, uint8_t bit_depth, const std::vector<uint8_t>& raw_data, const std::vector<Color>& palette, Color background_color) {
+ 
+    int i = 0;
+
+    uint8_t filtering_method = 0;
+
+    uint8_t bits_per_pixel = bit_depth;
+    uint8_t pixels_per_byte = 8 / bit_depth;
+
+    struct Prefixes {
+        Color left = Color(0, 0, 0);
+        Color upper_left = Color(0, 0, 0);
+        std::vector<Color> upper;
+    } prefixes;
+
+    prefixes.upper = std::vector<Color>(this->base_width);
+
+    uint64_t width_index = 0;
+    
+    while (i < raw_data.size()) {
+        if (i % ((this->base_width >> (pixels_per_byte - 1)) + 1) == 0) {
+            // Determine filtering method
+            filtering_method = raw_data.at(i);
+            // Update prefixes for filtering
+            prefixes.left = Color(0, 0, 0);
+            prefixes.upper_left = Color(0, 0, 0);
+            width_index = 0;
+            i++;
+        } else {
+            // Read and process pixel
+
+            // Calculate pixel color taking into account alpha
+            // Let "cf" be the color of the foreground pixel, "cb" is the background color
+
+            for (int byte_pos = 0; byte_pos < 8; byte_pos += bit_depth) {
+
+                uint8_t foreground_red;
+                uint8_t foreground_green;
+                uint8_t foreground_blue;
+
+                uint8_t mask = 0;
+
+                switch (pixels_per_byte) {
+                    case 1:
+                        mask = 0xFF;
+                        break;
+                    case 2:
+                        mask = 0x0F;
+                        break;
+                    case 4:
+                        mask = 0x03;
+                        break;
+                    case 8:
+                        mask = 0x01;
+                        break;
+                    default:
+                        break;
+                }
+
+                uint8_t shift_amt = ((8 - byte_pos) - bit_depth);
+
+                mask = mask << shift_amt;
+
+                if (color_type == 0) {
+                    foreground_red = (raw_data.at(i) & mask) >> shift_amt;
+                    foreground_green = (raw_data.at(i) & mask) >> shift_amt;
+                    foreground_blue = (raw_data.at(i) & mask) >> shift_amt;
+                } else {
+                    foreground_red = palette.at((raw_data.at(i) & mask) >> shift_amt).red;
+                    foreground_green = palette.at((raw_data.at(i) & mask) >> shift_amt).green;
+                    foreground_blue = palette.at((raw_data.at(i) & mask) >> shift_amt).blue;
+                }
+
+
+                if (filtering_method == 1) {
+                    if (i >= 1 + (bits_per_pixel / 8)) {
+                        foreground_red += prefixes.left.red;
+                        foreground_green += prefixes.left.green;
+                        foreground_blue += prefixes.left.blue;
+                    }
+                } else if (filtering_method == 2) {
+                    foreground_red += prefixes.upper.at(width_index).red;
+                    foreground_green += prefixes.upper.at(width_index).green;
+                    foreground_blue += prefixes.upper.at(width_index).blue;
+                } else if (filtering_method == 3) {
+                    // TODO: Implement average filtering method
+                } else if (filtering_method == 4) {
+                    // Paeth filtering
+
+                    foreground_red += paeth_predictor(prefixes.left.red, prefixes.upper.at(width_index).red, prefixes.upper_left.red);
+                    foreground_green += paeth_predictor(prefixes.left.green, prefixes.upper.at(width_index).green, prefixes.upper_left.green);
+                    foreground_blue += paeth_predictor(prefixes.left.blue, prefixes.upper.at(width_index).blue, prefixes.upper_left.blue);
+                }
+
+                prefixes.left = Color(foreground_red, foreground_green, foreground_blue);
+
+                prefixes.upper_left = prefixes.upper.at(width_index);
+
+                prefixes.upper.at(width_index) = Color(foreground_red, foreground_green, foreground_blue);
+
+                Color res = Color(foreground_red, foreground_green, foreground_blue);
+                res.alpha = 255; // Pixel is fully opaque if no alpha
+                this->image_data.push_back(Color(foreground_red, foreground_green, foreground_blue));
+
+                width_index++;
+           }
+
+           i++;
+           
+        }
+    }
+}
+
 void Image::construct_fragments(uint8_t color_type, uint8_t bit_depth, const std::vector<uint8_t>& raw_data, Color background_color) {
     
     int i = 0;
@@ -171,7 +284,7 @@ void Image::construct_fragments(uint8_t color_type, uint8_t bit_depth, const std
                 foreground_alpha += prefixes.upper.at(width_index).alpha;
             } else if (filtering_method == 3) {
                 // TODO: Implement average filtering method
-            } else {
+            } else if (filtering_method == 4) {
                 // Paeth filtering
 
                 foreground_red += paeth_predictor(prefixes.left.red, prefixes.upper.at(width_index).red, prefixes.upper_left.red);
@@ -317,29 +430,10 @@ void Image::load_PNG(const std::string& file_path) {
 
             // TODO: Handle different bit depths/color type combinations
 
-            if (color_type == 2) {
-                // Represents standard RGB format
-                this->construct_fragments(2, bit_depth, decompressed, background_color);
-            } else if (color_type == 6) {
+            if (color_type == 2 || color_type == 4 || color_type == 6) {
                 this->construct_fragments(6, bit_depth, decompressed, background_color);
-            } else if (color_type == 3) {
-                for (int i = 0; i < decompressed.size(); i++) {
-                    // Skip over first byte because it determines filtering method
-                    // TODO: Implement filtering methods
-
-                    if (bit_depth == 4) {
-                        // This is filtering mode 0
-                        if (i % ((this->base_width >> 1) + 1) != 0) {
-                            this->image_data.push_back(palette.at((decompressed.at(i) & 0xF0) >> 4));
-                            this->image_data.push_back(palette.at((decompressed.at(i) & 0x0F)));
-                        }
-                    } else {
-                        if (i % (this->base_width + 1) != 0) {
-                            this->image_data.push_back(palette.at(decompressed.at(i)));
-                        }
-                    }
-                }
-
+            } else if (color_type == 0 || color_type == 3) {
+                this->construct_fragments(color_type, bit_depth, decompressed, palette, background_color);
             }
 
 
@@ -368,9 +462,6 @@ void Image::apply_transformation_matrix(const Matrix& transformation_matrix) {
 
 void Image::rasterize(std::vector<Fragment>& fragments) {
     for (int i = 0; i < image_data.size(); i++) {
-        if (i / this->base_width == 500) {
-            std::cout << "got here" << std::endl;   
-        }
         fragments.push_back(Fragment(this->pos.x + (i % this->base_width), this->pos.y + (i / this->base_width), image_data.at(i), this->get_z_index()));
     }
 }
