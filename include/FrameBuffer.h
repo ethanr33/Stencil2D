@@ -26,6 +26,10 @@ class FrameBuffer {
             this->frame_buffer.at(width * y_pos + x_pos) = c;
         }
 
+        inline Color get_pixel(int x_pos, int y_pos) const {
+            return this->frame_buffer.at(width * y_pos + x_pos);
+        }
+
         inline const std::vector<Color>& get_frame_buffer() const {
             return this->frame_buffer;
         }

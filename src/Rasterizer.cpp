@@ -5,6 +5,7 @@
 #include <array>
 #include <limits>
 #include <memory>
+#include <algorithm>
 
 #include "rasterizer/Rasterizer.h"
 #include "utils/Visitor.h"
@@ -18,16 +19,20 @@ void Rasterizer::make_fragments(const std::vector<std::unique_ptr<Renderable>>& 
     }
 }
 
-void Rasterizer::render_fragments(FrameBuffer& buffer) const {
-    // Map from pixel position to maximum z index of fragment
-    const size_t buffer_size = buffer.get_frame_buffer().size();
-    std::vector<uint32_t> z_indices(buffer_size, std::numeric_limits<uint32_t>::min());
+void Rasterizer::render_fragments(FrameBuffer& buffer) {
+    std::sort(fragments.begin(), fragments.end(), [](Fragment a, Fragment b) {
+        return a.z_index < b.z_index;
+    });
 
-    for (const Fragment& f : this->fragments) {
+    // fragments is guaranteed to be sorted by z index so pixels can be composited together from the bottom up
+
+    for (int i = 0; i < fragments.size(); i++) {
+        Fragment f = fragments.at(i);
+
         uint32_t fragment_index = buffer.get_width() * f.y + f.x;
-        if (buffer.is_in_bounds(f.x, f.y) && f.z_index >= z_indices.at(fragment_index)) {
-            z_indices.at(fragment_index) = f.z_index;
-            buffer.update_pixel(f.x, f.y, f.color);
+        if (buffer.is_in_bounds(f.x, f.y)) {
+            Color composed = Color::compose(buffer.get_pixel(f.x, f.y), f.color);
+            buffer.update_pixel(f.x, f.y, composed);
         }
     }
 }

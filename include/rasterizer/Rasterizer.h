@@ -21,7 +21,7 @@ class Rasterizer {
          * @brief Renders current fragments onto a frame buffer
          * 
          */
-        void render_fragments(FrameBuffer&) const;
+        void render_fragments(FrameBuffer&);
 
         /**
          * @brief Resets rasterizer state for next frame

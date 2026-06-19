@@ -25,6 +25,24 @@ struct Color {
     }
 
     /**
+     * @brief Given a background color and foreground color, compose them together using their alpha values
+     */
+    static Color compose(Color bg_color, Color fg_color) {
+        double alpha_cf = fg_color.alpha / 255.0;
+        double alpha_cb = bg_color.alpha / 255.0;
+
+        double alpha_composite = alpha_cf + alpha_cb * (1 - alpha_cf);
+        double red_composite = (fg_color.red * alpha_cf + bg_color.red * alpha_cb * (1 - alpha_cf)) / alpha_composite;
+        double green_composite = (fg_color.green * alpha_cf + bg_color.green * alpha_cb * (1 - alpha_cf)) / alpha_composite;
+        double blue_composite = (fg_color.blue * alpha_cf + bg_color.blue * alpha_cb * (1 - alpha_cf)) / alpha_composite;
+
+        Color res(red_composite, green_composite, blue_composite);
+        res.alpha = alpha_composite * 255;
+
+        return res;
+    }
+
+    /**
      * @brief Converts object into ARGB32 format
      */
     uint32_t to_hex() const {
