@@ -15,7 +15,7 @@ class Rasterizer {
         /**
          * @brief Turn a list of renderables into fragments, which which are then rendered onto the frame buffer.
          */
-        void make_fragments(const std::vector<std::unique_ptr<Renderable>>&);
+        void make_fragments(std::vector<std::unique_ptr<Renderable>>&);
 
         /**
          * @brief Renders current fragments onto a frame buffer

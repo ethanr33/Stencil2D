@@ -13,17 +13,17 @@
 #include "primitives/Vertex.h"
 
 
-void Rasterizer::make_fragments(const std::vector<std::unique_ptr<Renderable>>& renderables) {
-    for (const std::unique_ptr<Renderable>& r : renderables) {
-        r.get()->rasterize(this->fragments);
+void Rasterizer::make_fragments(std::vector<std::unique_ptr<Renderable>>& renderables) {
+    std::sort(renderables.begin(), renderables.end(), [](std::unique_ptr<Renderable>& a, std::unique_ptr<Renderable>& b) {
+        return a->get_z_index() < b->get_z_index();
+    });
+
+    for (int i = 0; i < renderables.size(); i++) {
+        renderables.at(i).get()->rasterize(this->fragments);
     }
 }
 
 void Rasterizer::render_fragments(FrameBuffer& buffer) {
-    std::sort(fragments.begin(), fragments.end(), [](Fragment a, Fragment b) {
-        return a.z_index < b.z_index;
-    });
-
     // fragments is guaranteed to be sorted by z index so pixels can be composited together from the bottom up
 
     for (int i = 0; i < fragments.size(); i++) {

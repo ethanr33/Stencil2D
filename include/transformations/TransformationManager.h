@@ -26,6 +26,10 @@ class TransformationManager {
             return transformed_renderables;
         }
 
+        std::vector<std::unique_ptr<Renderable>>& get_transformed_renderables() noexcept {
+            return transformed_renderables;
+        }
+
         void clear_transformed_commands() {
             this->transformed_renderables.clear();
         }

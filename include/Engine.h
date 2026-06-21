@@ -46,6 +46,11 @@ class Engine {
         void draw(const Renderable&);
 
         /**
+         * @brief Clears all rendered entities
+         */
+        void clear();
+
+        /**
          * @brief Translates viewport by (dx, dy) screen pixels
          * Essentially changes the top left corner coordinates from (x, y) to (x + dx, y + dy)
          */

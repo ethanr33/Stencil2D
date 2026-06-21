@@ -11,6 +11,10 @@ void Engine::draw(const Renderable& r) {
     renderer.add_renderable(r);
 }
 
+void Engine::clear() {
+    renderer.clear();
+}
+
 void Engine::translate_viewport(double dx, double dy) {
     renderer.translate_absolute(dx, dy);
 }
