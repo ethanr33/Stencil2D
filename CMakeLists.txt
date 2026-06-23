@@ -8,7 +8,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 add_compile_options(-g -fno-omit-frame-pointer)
 
 add_executable(out)
-add_executable(test)
+add_executable(unit_tests)
 
 add_library(2d-renderer)
 add_library(xdg-shell)
@@ -58,7 +58,7 @@ target_sources(2d-renderer
 
 file(GLOB_RECURSE RENDERER-TEST-SOURCES "./test/*.cpp")
 
-target_sources(test
+target_sources(unit_tests
     PRIVATE 
         ${RENDERER-TEST-SOURCES}
         ${WAYLAND_CLIENT_INCLUDE_DIR}
@@ -77,10 +77,18 @@ target_link_libraries(out
         ${WAYLAND_CLIENT_LIBRARY}
 )
 
-target_link_libraries(test
+target_link_libraries(unit_tests
     PRIVATE
         2d-renderer
         xdg-shell
         doctest
         ${WAYLAND_CLIENT_LIBRARY}
+)
+
+enable_testing()
+
+add_test(
+  NAME unit_tests
+  WORKING_DIRECTORY ../test
+  COMMAND $<TARGET_FILE:unit_tests>
 )

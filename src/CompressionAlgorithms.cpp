@@ -90,11 +90,17 @@ void CompressionAlgorithms::DEFLATE_Decompress(std::vector<uint8_t>& block, std:
     if (BTYPE == 0) {
         // Data is not compressed
 
-        // DEFLATE uses little-endian format
-        uint16_t data_length = block.at(1) | (block.at(2) << 8);
-        uint16_t data_negative_length = block.at(3) | (block.at(4) << 8);
+        // Bits up to the next byte are ignored
+        bitstream.pop_num(5);
 
-        block.erase(block.begin(), block.begin() + 5);
+        // DEFLATE uses little-endian format
+        uint16_t data_length = bitstream.pop_num(16);
+        uint16_t data_negative_length = bitstream.pop_num(16);
+
+        while (!bitstream.is_empty()) {
+            decompressed.push_back(bitstream.pop_num(8));
+        }
+
     } else if (BTYPE == 1) {
         // Fixed huffman block
 

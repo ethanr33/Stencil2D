@@ -4,8 +4,27 @@
 
 TEST_CASE("DEFLATE decompression") {
 
-    SUBCASE("Dynamic huffman tree compression") {
+    SUBCASE("Uncompressed data") {
+        SUBCASE("Data test 1") {
+            std::vector<uint8_t> compressed = { 0x01, 0x05, 0x00, 0xFA, 0xFF, 0xFF, 0x9C, 0x09, 0x00, 0x67 };
 
+            std::vector<uint8_t> decompressed;
+
+            CompressionAlgorithms::DEFLATE_Decompress(compressed, decompressed);
+
+            std::vector<uint8_t> expected = { 0xFF, 0x9C, 0x09, 0x00, 0x67 };
+
+            REQUIRE(decompressed.size() == expected.size());
+
+            for (int i = 0; i < decompressed.size(); i++) {
+                INFO("Check failed at ", i, " Expected: ", expected.at(i), " Found: ", decompressed.at(i));
+                CHECK(decompressed.at(i) == expected.at(i));
+            }
+
+        }
+    }
+
+    SUBCASE("Static huffman tree compression") {
         SUBCASE("Data test 1") {
 
             std::vector<uint8_t> compressed = { 0x4B, 0x4C, 0x4A, 0x06, 0x00 };
@@ -24,6 +43,9 @@ TEST_CASE("DEFLATE decompression") {
             }
 
         }
+    }
+
+    SUBCASE("Dynamic huffman tree compression") {
 
         SUBCASE("Data test 2") {
 
